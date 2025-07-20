@@ -1,0 +1,328 @@
+---
+title: "pitcher.usage"
+output: html_document
+date: "2025-07-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+Time for some 2024 statistical summary data.  i wanted to start with pitcher usage.   I used the baseballr R package to download the fangraphs pitcher leaderboard, setting a 0 innings threshold so we get every player who pitched an inning. For this summary, i want to use ALL pitchers, so i did not set any innings thresholds.  We are generally going to be looking at distributions, and in those distributions we can expect to find outliers - many of those are going to be these small sample size data points.  This is neither right or wrong, just use this information when looking at the data.  There are a few areas I want to look at: 
+
+1. How many pitchers are used across the league?
+2. How many of those pitchers are starters, releivers, or both?  
+3. How many innings do those pitchers pitch per appearance?
+4. Is pitcher usage dependent on success? 
+5. Are young pitchers handled differently than older pitchers?  
+6. And finally, for funsies, how many position players pitched this year?!  
+
+
+```{r get.data, echo=FALSE, warning=FALSE}
+library(baseballr)
+library(ggpubr)
+d.24 <- data.frame(baseballr::fg_pitcher_leaders(startseason = 2024, endseason = 2024))
+d.24$Start_IP[which(is.na(d.24$Start_IP))] <- 0
+d.24$Relief_IP[which(is.na(d.24$Relief_IP))] <- 0
+save.dir <- "C:/Users/cbroe/OneDrive/Documents/R/"
+```
+
+### How many pitchers are used across the league? 
+
+```{r basic.stats, echo=FALSE, warning = FALSE}
+nstarts <- sum(d.24$GS)
+nstarters <- length(which(d.24$GS >= 1))
+nstarters.10plus <- length(which(d.24$GS >= 10))
+total.pitchers <- length(nrow(d.24))
+total.innings <- round(sum(d.24$IP))
+total.games <- sum(d.24$GS)
+innings.per.start <- round(weighted.mean(d.24$Start_IP/d.24$GS, d.24$GS), 1)
+
+```
+In 2024, pitchers covered a total of `r total.innings` innings in `r total.games` games (as measured by the number of assigned games started), averaging `r round(total.innings/total.games, 1)` innings pitched per game. These innings were covered by `r total.pitchers`.  Of those pitchers, `r nstarters` started at least one game, and `r nstarters.10plus` started at least 10 games.  On average, starters pitched `r innings.per.start` innings per start.   
+
+
+### How many of those pitchers are starters, releivers, or both? 
+Below you fill find a histogram.  For each pitcher, i calculated the percentage of innings the innings that pitcher pitched as a starter.  The histogram show the proportions of this percentage across the league.  
+
+```{r start.vs.relief, echo=FALSE, warning = FALSE}
+d.24$percent.innings.started <- 100*d.24$Start_IP/(d.24$Relief_IP + d.24$Start_IP)
+pl <- gghistogram(
+  d.24,
+  x = "percent.innings.started", col = 1, fill = 2, alpha = 1)
+pl
+ggsave(pl, filename = paste0(save.dir, "start.vs.releive.histogram.jpg"))
+
+d.24$pitcher.category <- "reliever"
+d.24$pitcher.category[which(d.24$percent.innings.started >=80)] <- "starter"
+d.24$pitcher.category[which(d.24$percent.innings.started <80 & d.24$percent.innings.started >20)] <- "hybrid"
+n.primarily.starters <- length(which(d.24$pitcher.category == "starter"))
+n.hybrid <- length(which(d.24$pitcher.category == "hybrid"))
+n.primarily.relievers <- length(which(d.24$pitcher.category == "reliever"))
+
+
+```
+
+
+This plot shows us that the vast majority of pitchers are either purely starters or purely relievers.  Lets assign some arbitray cutoffs:  if a pitcher throws 80% or more of their innings as a starter, we will call them a starter, 20% of the innings or less is a reliever, and 20-80% we will call 'hyrbid'.   Doing so gives us `r n.primarily.starters` starters, `r n.primarily.relievers` relievers, and `r n.hybrid` hybrid pitchers.  
+
+```{r start.vs.relief2, echo=FALSE, warning = FALSE}
+pl <- ggboxplot(
+  data = d.24,
+  x = 'pitcher.category',
+  y = 'IP',
+  title = 'innings pitched per pitcher'
+)
+pl
+ggsave(pl, filename = paste0(save.dir, "start.vs.releive.innings.boxplot.jpg"))
+starter.range <- summary(d.24$IP[which(d.24$pitcher.category == "starter")])
+hybrid.range<- summary(d.24$IP[which(d.24$pitcher.category == "hybrid")])
+hybrid.games.started <- summary(d.24$GS[which(d.24$pitcher.category == "hybrid")])
+openers <- which((d.24$Start_IP/d.24$GS) <= 3 & d.24$GS >= hybrid.games.started[5])
+reliever.range <- summary(d.24$IP[which(d.24$pitcher.category == "reliever")])
+
+```
+
+Starters generally pitch way more innings (25th to 75th percentile = `r starter.range[c(2,5)]`) than hybrid (25th to 75th percentile = `r hybrid.range[c(2,5)]`), who pitch more than relievers (25th to 75th percentile = `r reliever.range[c(2,5)]`).  Probably not a surprise to anyone.    
+
+### How many innings do those pitchers pitch per appearance?
+We have certainly seen reported that starters are pitching fewer innings per start then they did back in the good old days.  This is certainly true - lets look at how many innings we see per start across the league, by pitcher category and by start.vs. relief appearance.  
+
+```{r innings.per.appearanch, echo=FALSE, warning = FALSE}
+d.24$innings.per.start <- d.24$Start_IP/d.24$GS
+d.24$innings.per.relief.appearance <- d.24$Relief_IP/(d.24$Games - d.24$GS)
+pl <- ggboxplot(
+  data = d.24,
+  x = 'pitcher.category',
+  y = 'innings.per.start',
+  title = 'innings per start by pitcher type'
+)
+pl
+ggsave(pl, filename = paste0(save.dir, "innings.per.start.pitcher.type.jpg"))
+
+pl <- ggboxplot(
+  data = d.24,
+  x = 'pitcher.category',
+  y = 'innings.per.relief.appearance',
+  title = 'innings per relief appearance by pitcher type'
+)
+pl
+ggsave(pl, filename = paste0(save.dir, "innings.per.relief.pitcher.type.jpg"))
+
+
+
+starter.starts.range <- summary(d.24$innings.per.start[which(d.24$pitcher.category == "starter")])
+hybrid.starts.range <- summary(d.24$innings.per.start[which(d.24$pitcher.category == "hybrid")])
+reliever.appearances.range <- summary(d.24$innings.per.relief.appearance[which(d.24$pitcher.category == "reliever")])
+openers <- which((d.24$Start_IP/d.24$GS) <= 3 & d.24$GS >= hybrid.games.started[5])
+hybrid.appearances.range <- summary(d.24$innings.per.relief.appearance[which(d.24$pitcher.category == "hybrid")])
+starters.in.relief <- which(d.24$pitcher.category == "starter" & d.24$innings.per.relief.appearance > 3)
+team.starters.in.relief <- table(d.24$team_name[starters.in.relief])
+
+```
+We see that the mean pitcher start duration for starers across the league (when using the mean start length for each pitcher) is `r round(starter.starts.range[4], 1)` innings, while for hybrid pitchers it is reduced to `r round(hybrid.starts.range[4], 1)`.  Likewise, relief appearance duration for relievers averages `r round(reliever.appearances.range[4], 1)` innings, while for hybrid pitchers it increases to `r round(hybrid.appearances.range[4], 1)`.  This classification scheme seems to reflect intuition - these hybrid pitchers are the long-men of the bullpen with spot starts.   
+
+It struck me that this data could also point me toward pitchers who might be considered 'openers.'   We will define an opener as a pitcher who (1) has at least `r hybrid.games.started[5]` starts and (2) averages less than 3 innings per start. somewhat arbitrary, but the games started threshold was based on the 75th percentile for number of starts for 'hybrid' pitchers.   There were `r length(openers)` identified with this filter, `r paste(d.24$PlayerName[openers], sep = ", ")`. These pitchers pitched for `r paste(unique(d.24$team_name[openers], sep = ", "))`, and are pretty good pitchers - look 'em up!  I would be willing to bet that many of those starters in the 'innings per relief appearance' plot above are also the piggyback starters for the 'openers' as well.  Here are the teams with starters in relief appearances with average innings pitched in relief > 3 per outing:  `r paste(names(team.starters.in.relief), team.starters.in.relief, sep = ":", collapse = ", ")`. 
+
+
+###  Is pitcher usage dependent on success? 
+One might expect that the better the pitcher, the more we want to use said pitcher.  Of course this holds only to a point, beyond which a pitcher becomes less effective through either overexposure for fatigue.   So lets look at the relationship between pitcher 'quality' and innings pitched over the course of the season, by pitcher type.  Let's start by defining 'quality'.  first and foremost is our favorite aggregate statistic: WAR.  We will, however, normalize this by inning to ensure that we are looking and 'quality' per inning pitch, to enable us to separate mules from the thoroughbreds. First plot:  how does WAR accumulate per inning based on pitcher classification? 
+
+```{r usage.vs.success, echo=FALSE, warning = FALSE}
+
+d.24$WAR.per.100.IP <- 100*d.24$WAR/d.24$IP
+  
+pl <- ggboxplot(
+  data = d.24, 
+  x = 'pitcher.category',
+  y = 'WAR.per.100.IP',
+  title = 'WAR per 100 innings pitched by pitcher type'
+) + scale_y_continuous(limits = c(-5, 10))
+pl
+ggsave(pl, filename = paste0(save.dir, "WAR.per.100IP.boxplots.jpg"))
+
+
+starter.range <- round(summary(d.24$WAR.per.100.IP[which(d.24$pitcher.category == "starter")]),2)
+reliever.range <- round(summary(d.24$WAR.per.100.IP[which(d.24$pitcher.category == "reliever")]), 2)
+hybrid.range <- round(summary(d.24$WAR.per.100.IP[which(d.24$pitcher.category == "hybrid")]),2)
+
+starter.weighted.mean <- round(weighted.mean(
+  d.24$WAR.per.100.IP[which(d.24$pitcher.category == "starter")], 
+  d.24$IP[which(d.24$pitcher.category == "starter")]), 2)
+reliever.weighted.mean <- round(weighted.mean(
+  d.24$WAR.per.100.IP[which(d.24$pitcher.category == "reliever")], 
+  d.24$IP[which(d.24$pitcher.category == "reliever")]), 2)
+hybrid.weighted.mean <- round(weighted.mean(
+  d.24$WAR.per.100.IP[which(d.24$pitcher.category == "hybrid")], 
+  d.24$IP[which(d.24$pitcher.category == "hybrid")]), 2)
+
+
+```
+Starters tend to accumulate more WAR because they accumulate more innings.  However, the also accumulate more WAR, on average, than relievers or hybrids per inning.  There is a massive range in these values - i actually had to constrain the y-axis here to keep the extreme negative values from rending the plot useless.   This is going to look rough, but here are the mean WAR per 100 innings values across the league:  `r paste("starters:", starter.range[4], "; relievers:", reliever.range[4], "; and hybrids:", hybrid.range[4])`.  The problem with mean as a summary statistic is that it can rather sensitive to extreme outliers, so lets look as well at the medians:  `r paste("starters:", starter.range[5], "; relievers:", reliever.range[5], "; and hybrids:", hybrid.range[5])`.  This makes a bit more sense.   We can also summarize by weighted mean, with innings pitcher serving as the weighting variable: `r paste("starters:", starter.weighted.mean, "; relievers:", reliever.weighted.mean, "; and hybrids:", hybrid.weighted.mean)`.  Each of these trends tells us that, on average, starters > relievers > hybrids.  If pitcher usage was perfectly dependent on pitcher quality, we would expect our hybrid pitchers to pitch the fewest innings.  
+
+```{r usage.vs.success2, echo=FALSE, warning = FALSE}
+ 
+pl <- ggboxplot(
+  data = d.24, 
+  x = 'pitcher.category',
+  y = 'IP',
+  title = 'Innings pitched by pitcher type'
+)
+pl
+ggsave(pl, filename = paste0(save.dir, "IP.by.pitcher.type.boxplots.jpg"))
+
+
+```
+This isn't what we see.  hybrid pitchers, while accumulating the least WAR per inning, are pitching more innings than relievers annually.  Presumably this reflect the fact that many of the innings pitched by this group of pitchers are of the 'mop up' type.  Don't want to burn the bullpen, your starter got rocked and you need to call on an emergency longman, etc.  This is a clear example of pitcher usage being dependent on the situation.   all innings are not created equal.  Given that, one might expect that the leverage index, a measure of how important a situation is, would be lower for your hybrid pitchers than our relievers, generally.  We will use gmLI here - game leverage index, or the leverage index when the pitcher enters the game.  
+
+```{r usage.vs.success3, echo=FALSE, warning = FALSE}
+ 
+pl <- ggboxplot(
+  data = d.24, 
+  x = 'pitcher.category',
+  y = 'gmLI',
+  title = 'game Leverage Index pitcher type'
+)
+pl
+ggsave(pl, filename = paste0(save.dir, "gmLI.by.pitcher.type.boxplots.jpg"))
+
+
+```
+Lots of variance here, and obviously the variance is much higher for relievers, who enter the game later, when the team may be either winning or losing. but we do see that generally the relievers are being used more in high leverage situations than hybrids.  
+
+Now to our main question:  within each pitcher category, are pitchers that pitch well used more?  Lets look! 
+```{r usage.vs.success4, echo=FALSE, warning = FALSE}
+ 
+pl <- ggscatter(d.24, x = "IP", y = "WAR.per.100.IP", facet.by = 'pitcher.category',
+            color = "black", shape = 19, size = 2, # Points color, shape and size
+            add = "reg.line",  # Add regressin line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE, # Add confidence interval
+            cor.coef = TRUE
+  ) + scale_y_continuous(limits = c(-5, 10))
+pl
+ggsave(pl, filename = paste0(save.dir, "usage.vs.war.by.pitcher.type.scatter.jpg"))
+
+
+```
+Indeed - the good pitchers get used more.  Also notice the slope of the regression lines here.  relievers are particularly sensitive to this - they can be used pretty freely, while a starter is used every fifth day, whether they pitched well last time or not.   As a result, the aggregate usage for relievers is very dependent on success.  Lets make the same plots for strikeout and walk percentages, to take us back to some more fundamental pitching statistics.  
+
+
+```{r usage.vs.success5, echo=FALSE, warning = FALSE}
+ 
+pl <- ggscatter(d.24, x = "IP", y = "BB_pct", facet.by = 'pitcher.category',
+            color = "black", shape = 19, size = 2, # Points color, shape and size
+            add = "reg.line",  # Add regressin line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE, # Add confidence interval
+            cor.coef = TRUE
+  )
+pl
+ggsave(pl, filename = paste0(save.dir, "usage.vs.bb.pct.by.pitcher.type.scatter.jpg"))
+
+
+```
+Pitchers that do not walk alot of batters pitch more innings than those that do walk alot of batters.  insightful eh?  note again the slopes.  managers have less tolerance for walks for relievers than starters - but also the worst relievers walk more than the worst starters.   and for strikeout percentage: 
+
+```{r usage.vs.success6, echo=FALSE, warning = FALSE}
+ 
+pl <- ggscatter(d.24, x = "IP", y = "K_pct", facet.by = 'pitcher.category',
+            color = "black", shape = 19, size = 2, # Points color, shape and size
+            add = "reg.line",  # Add regressin line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE, # Add confidence interval
+            cor.coef = TRUE
+  )
+pl
+ggsave(pl, filename = paste0(save.dir, "usage.vs.k.pct.by.pitcher.type.scatter.jpg"))
+
+
+# pl <- ggscatter(d.24, x = "Age", y = "K_pct", facet.by = 'pitcher.category',
+#             color = "black", shape = 19, size = 2, # Points color, shape and size
+#             add = "reg.line",  # Add regressin line
+#             add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+#             conf.int = TRUE, # Add confidence interval
+#             cor.coef = TRUE
+#   )
+# pl
+# ggsave(pl, filename = paste0(save.dir, "usage.age.vs.k.pct.by.pitcher.type.scatter.jpg"))
+# 
+# pl <- ggscatter(d.24, x = "Age", y = "BB_pct", facet.by = 'pitcher.category',
+#             color = "black", shape = 19, size = 2, # Points color, shape and size
+#             add = "reg.line",  # Add regressin line
+#             add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+#             conf.int = TRUE, # Add confidence interval
+#             cor.coef = TRUE
+#   )
+# pl
+# ggsave(pl, filename = paste0(save.dir, "usage.age.vs.BB.pct.by.pitcher.type.scatter.jpg"))
+# 
+
+```
+Whooeeee!!  look at that meteoric slope for relievers!!  Its like being shot out of a cannon!!  I will be honest, i was a bit surprised at how strong the relationship was for starters.  i often think that more strikeout means more pitches per batter, which means fewer innings per appearance.  Not so fast!  turns out a good number of starting pitchers can both strike out a bunch of hitters and do so for alot of innings.   Also note that the strikeout rates are highers for relievers, especially the ones that see alot of innings. 
+
+### Are young pitchers handled differently than older pitchers?  
+As the Cardinals are now debating the various philosophies of team building, i though it would be useful to see how the league handles pitchers as a function of their Age.  One migh ask - why would it be differnt by age?  To which you could certainly list any number of arguments and counterarguments.  Young pitchers have rubber arms.  old pitchers are more savvy.  veterans know how to pitch, rookies can only throw.  you need to build up young pitchers for an MLB workload.  etc etc.  Lets see what the numbers show. We will look at innings pitched by group, regressed against age at the start of the 2024 season.  
+
+```{r pitcher.age, echo=FALSE, warning = FALSE}
+ 
+pl <- ggscatter(d.24, x = "IP", y = "Age", facet.by = 'pitcher.category',
+            color = "black", shape = 19, size = 2, # Points color, shape and size
+            add = "reg.line",  # Add regressin line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE, # Add confidence interval
+            cor.coef = TRUE
+  )
+pl
+ggsave(pl, filename = paste0(save.dir, "age.by.pitcher.type.scatter.jpg"))
+
+
+```
+There is a good deal of noise in these plots, but i was somewhat interested to see that young pitchers are used less, on average than older pitchers.  this trend holds for each pitcher category.  Every one of them.  Again, the slope is steepest for the relievers.   I do not fully know what this means, to be honest.  but when we think about the cardinals position, and how to construct their pitching staff, there certainly appears to be a decent trend for veterans to through more innings than their younger teammates.  What is not clear is why - does this reflect a shorter leash for young pitchers?  Or building up workloads?  Is it increased injury frequency/duration for younger players?   These data do not answer those questions, but it certainly seems plausible that data like these are what has pushed the Cards front office to sign veteran pitchers rather than trusting in their young arms.   I will also reiterate that these data are really noisy, and we are looking at R values around 0.2 - pitcher quality (see strikeout percentage, for example) determines innings pitched much more than does age.   
+
+### And finally, for funsies, how many position players pitched this year?! 
+Hitters pitching is almost as fun as pitchers hitting (well, at least pitchers hitting well is fun.  A Waino bomb was always made the highlight reels).   So how many hitters pitched?  I had to go get the batter statistics as well, to classify each player as a hitter or a pitcher.  Given the universal DH, pitchers generally do not hit, but i wanted to rule out all pitchers that may have batted once or twice - it can still happen when the benches run low and you need a pinch hitter.  so i set a 3 AB minimum - any player that got at least three AB is considered a hitter, and not a pitcher.  lets see how this works as a filter.     
+```{r get.batter.data, echo=FALSE, warning=FALSE}
+b.24 <- data.frame(baseballr::fg_batter_leaders(startseason = 2024, endseason = 2024))
+batters <- which(b.24$AB>=3)
+batter.ids <- b.24$playerid[batters]
+d.24.batters <- d.24[d.24$playerid %in% batter.ids,]
+
+```
+There are `r nrow(b.24)` batters from 2024 on the fangraphs leaderboards.  remarkably, only `r length(batters)` had 3 or more at bats.   In the interest of simplicity, i am going to go ahead and treat to those `r length(batters)` batters as the population for in which we will look for pitching statistics.  Turns out there are `r nrow(d.24.batters)` who also pitched in 2024.  A list:  `r paste(d.24.batters$PlayerName, sep = ', ')`.  lets go ahead an blot their stats, because, well, it is fun to look at and compare to real pitchers.  lets do IP vs BB and K percentage.  
+
+```{r get.batter.data2, echo=FALSE, warning=FALSE}
+
+pl <- ggscatter(d.24.batters, x = "IP", y = "BB_pct", 
+            color = "black", shape = 19, size = 2, # Points color, shape and size
+            add = "reg.line",  # Add regressin line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE, # Add confidence interval
+            cor.coef = TRUE
+  )
+pl
+ggsave(pl, filename = paste0(save.dir, "batter.walk.percentage.scatter.jpg"))
+
+
+```
+
+```{r get.batter.data3, echo=FALSE, warning=FALSE}
+
+pl <- ggscatter(d.24.batters, x = "IP", y = "K_pct", 
+            color = "black", shape = 19, size = 2, # Points color, shape and size
+            add = "reg.line",  # Add regressin line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE, # Add confidence interval
+            cor.coef = TRUE
+  )
+pl
+ggsave(pl, filename = paste0(save.dir, "batter.K.percentage.scatter.jpg"))
+
+
+```
+It appears that there is actually a very very slight, if you cock your head and close one eye and forget all your basic statistical training, tendency for batters who pitch to get more innings if they walk fewer opposing hitters.   Meaningful?  Who knows.  Fun to think that there are three hitters last year who threw four innings plus? Yes.  
+
+
+
+
