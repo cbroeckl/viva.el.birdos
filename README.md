@@ -1,5 +1,5 @@
 # viva.el.birdos
-A repository to enable the VEB community to share code for analysis of baseball, specifically Cardinals, analysis.  For folks wanting to contribute: 
+A repository to enable the VEB community to share code for baseball, specifically St Louis Cardinals, analysis.  For folks wanting to contribute: 
 
 1. Create a github account
 2. Download the github desktop software, install on your computer
