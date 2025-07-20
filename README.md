@@ -9,7 +9,8 @@ A repository to enable the VEB community to share code for analysis of baseball,
     - in upper left, find 'current repository', and click 'add' then 'clone repository'
     - find cbroeckl/viva.el.birdos, clone.  
     - this downloads all content to your local drive. ('my documents/github' on windows, by default)
-    - add your R code files to the existing files set
+    - in your local repository, i suggest creating a new directory for your files, called by your VEB username or your name. 
+    - add your R code files to the existing files set, ideally in your personal subdirectory you just created.
     - once you are comfortable sharing you files publicly, 'push' your code back to the repository
        - in github destop, find your edited new file, fill in description in lower left of window (required)
        - 'commit' edit (just below description you just entered)
