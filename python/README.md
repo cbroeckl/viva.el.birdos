@@ -7,7 +7,8 @@ on your machine, you'll need to do that. On a Mac, that would be something like
 the docs accordingly)
 
 ```bash
-# To set up the environemnt
+# To install the necessary packages
 uv pip install -r requirements.txt
+# to activate the virtual environment
 source .venv/bin/activate
 ```

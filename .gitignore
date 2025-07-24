@@ -39,6 +39,9 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+# Python virtual environemtn 
+.venv
+
 # pkgdown site
 docs/
 
