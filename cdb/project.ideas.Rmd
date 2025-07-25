@@ -1,0 +1,15 @@
+---
+title: "project ideas"
+author: "corey broeckling"
+date: "2025-07-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ideas for winter projects
+
+ - lineup run prediction.  given a lineup of nine batters, what is the run distribution expected.  Potentially incorporate statcast data, pitcher quality, defense, etc.  
+ - do smaller pitchers breakd down more/sooner than bigger pitchers? 
