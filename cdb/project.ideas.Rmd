@@ -12,4 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## ideas for winter projects
 
  - lineup run prediction.  given a lineup of nine batters, what is the run distribution expected.  Potentially incorporate statcast data, pitcher quality, defense, etc.  
- - do smaller pitchers breakd down more/sooner than bigger pitchers? 
+ - do smaller pitchers break down more/sooner than bigger pitchers? 
+ - impact of weather/elevation on pitch movement
+ - small sample size predictions.  can we look at hitter behavior at an individual pitch level to predict future near-future OPS, for example? 
