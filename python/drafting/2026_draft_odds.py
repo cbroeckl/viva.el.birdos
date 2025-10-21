@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 import pprint
 
@@ -87,7 +86,6 @@ def set_up_data():
 
     return lottery, record_order, ineligible
 
-
 def draft(lottery, record_order, ineligible):
     """
         As I understand the rules for selecting draft order, the process is:
@@ -129,7 +127,7 @@ def pick(draft_order, lottery, record_order):
     choice = np.random.choice(lottery)
     draft_order.append(choice)
     lottery = lottery[lottery != choice]
-    record_order.remove(choice)
+    record_order = record_order[record_order != choice]
     return lottery, record_order
 
 
@@ -137,11 +135,11 @@ if __name__ == "__main__":
     cardinals_draft_spots = []
     lottery, record_order, ineligible_teams = set_up_data()
 
-    NUM_SIMULATIONS = 1_000_000
+    NUM_SIMULATIONS = 1000 # 1_000_000
 
     for _ in range(NUM_SIMULATIONS):
-        i_lottery = copy.deepcopy(lottery)
-        i_record_order = copy.deepcopy(record_order)
+        i_lottery = np.copy(lottery)
+        i_record_order = np.copy(record_order)
         order = draft(i_lottery, i_record_order, ineligible_teams)
         cardinals_spot = np.where(order == "STL")
         cardinals_draft_spots.append(cardinals_spot[0] + 1)
