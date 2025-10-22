@@ -48,5 +48,5 @@ for(i in 1:weeks) {
 }
 four.week.rolling.average.2024.batters <- out
 plot(four.week.rolling.average.2024.batters$wRC_plus[grep("Judge", four.week.rolling.average.2024.batters$PlayerName)], type = 'l')
-save(four.week.rolling.average.2024.batters, file = 'C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/4wkRollingPerformance/four.week.rolling.average.2024.batters.rda')
-write.csv(four.week.rolling.average.2024.batters, file = 'C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/4wkRollingPerformance/four.week.rolling.average.2024.batters.csv', row.names = FALSE)
+save(four.week.rolling.average.2024.batters, file = 'C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/4wkRollingPerformance/four.week.rolling.average.2024.batters.rda')
+write.csv(four.week.rolling.average.2024.batters, file = 'C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/4wkRollingPerformance/four.week.rolling.average.2024.batters.csv', row.names = FALSE)
