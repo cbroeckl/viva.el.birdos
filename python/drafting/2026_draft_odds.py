@@ -13,6 +13,9 @@ import pprint
                                                            
 """
 
+NUM_SIMULATIONS = 1_000_000
+
+
 def set_up_data():
     """
         I copied the odds of each team in the draft lottery getting the #1 pick from
@@ -38,50 +41,19 @@ def set_up_data():
         Angels (.444) -- ineligible
     """
     record_order = [
-        "COL",
-        "CHW",
-        "WAS",
-        "MIN",
-        "PIT",
-        "LAA",
-        "BAL",
-        "ATH",
-        "ATL",
-        "TBR",
-        "STL",
-        "MIA",
-        "ARI",
-        "TEX",
-        "SFG",
-        "KCR",
-        "NYM",
-        "HOU",
+        "COL", "CHW", "WAS", "MIN", "PIT", "LAA",
+        "BAL", "ATH", "ATL", "TBR", "STL", "MIA",
+        "ARI", "TEX", "SFG", "KCR", "NYM", "HOU",
     ]
 
-    ineligible = [
-        "COL",
-        "WAS",
-        "LAA",
-    ]
+    ineligible = [ "COL", "WAS", "LAA", ]
 
     lottery = np.concatenate(
-        [
-            np.full(2773, "CHW"),
-            np.full(2118, "MIN"),
-            np.full(1681, "PIT"),
-            np.full(924, "BAL"),
-            np.full(655, "ATH"),
-            np.full(454, "ATL"),
-            np.full(303, "TBR"),
-            np.full(235, "STL"),
-            np.full(185, "MIA"),
-            np.full(151, "ARI"),
-            np.full(134, "TEX"),
-            np.full(101, "SFG"),
-            np.full(84, "KCR"),
-            np.full(67, "NYM"),
-            np.full(34, "HOU"),
-        ]
+        [np.full(2773, "CHW"), np.full(2118, "MIN"), np.full(1681, "PIT"),
+            np.full(924, "BAL"), np.full(655, "ATH"), np.full(454, "ATL"),
+            np.full(303, "TBR"), np.full(235, "STL"), np.full(185, "MIA"),
+            np.full(151, "ARI"), np.full(134, "TEX"), np.full(101, "SFG"),
+            np.full(84, "KCR"), np.full(67, "NYM"), np.full(34, "HOU"),]
     )
 
     return lottery, record_order, ineligible
@@ -134,8 +106,6 @@ def pick(draft_order, lottery, record_order):
 if __name__ == "__main__":
     cardinals_draft_spots = []
     lottery, record_order, ineligible_teams = set_up_data()
-
-    NUM_SIMULATIONS = 1000 # 1_000_000
 
     for _ in range(NUM_SIMULATIONS):
         # Make copies since these records will be modified
