@@ -119,6 +119,7 @@ if __name__ == "__main__":
     values, counts = np.unique(cardinals_draft_spots, return_counts=True)
     raw_result = {int(k): int(v) for k, v in zip(values, counts)}
     percent_result = {}
+    
     for key in raw_result:
         percentage = (raw_result[key] / NUM_SIMULATIONS)
         percent_result[key] = f'{percentage:.2%}'
