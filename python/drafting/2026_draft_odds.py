@@ -112,8 +112,8 @@ if __name__ == "__main__":
         lottery_copy = np.copy(lottery)
         record_copy = np.copy(record_order)
         order = draft(lottery_copy, record_copy, ineligible_teams)
-        cardinals_spot = np.where(order == "STL")
-        cardinals_draft_spots.append(cardinals_spot[0] + 1)
+        cardinals_spot = np.where(order == "STL")[0]
+        cardinals_draft_spots.append(cardinals_spot + 1)
 
     cardinals_draft_spots = np.array(cardinals_draft_spots)
     values, counts = np.unique(cardinals_draft_spots, return_counts=True)
@@ -123,5 +123,4 @@ if __name__ == "__main__":
         percentage = (raw_result[key] / NUM_SIMULATIONS)
         percent_result[key] = f'{percentage:.2%}'
 
-    print(cardinals_draft_spots)
     pprint.pprint(percent_result)
