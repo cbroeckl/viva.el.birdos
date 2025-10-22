@@ -138,9 +138,10 @@ if __name__ == "__main__":
     NUM_SIMULATIONS = 1000 # 1_000_000
 
     for _ in range(NUM_SIMULATIONS):
-        i_lottery = np.copy(lottery)
-        i_record_order = np.copy(record_order)
-        order = draft(i_lottery, i_record_order, ineligible_teams)
+        # Make copies since these records will be modified
+        lottery_copy = np.copy(lottery)
+        record_copy = np.copy(record_order)
+        order = draft(lottery_copy, record_copy, ineligible_teams)
         cardinals_spot = np.where(order == "STL")
         cardinals_draft_spots.append(cardinals_spot[0] + 1)
 
