@@ -39,6 +39,11 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+# Python virtual environemtn 
+.venv
+# Ignore Pycharm
+.idea
+
 # pkgdown site
 docs/
 
