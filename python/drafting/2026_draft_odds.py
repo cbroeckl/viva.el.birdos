@@ -13,7 +13,7 @@ import pprint
 
 """
 
-NUM_SIMULATIONS = 100_000 # 1_000_000 # 5_000_000
+NUM_SIMULATIONS = 1_000_000
 
 
 def set_up_data():
