@@ -41,7 +41,6 @@ vignettes/*.pdf
 
 # Python virtual environemtn 
 .venv
-
 # Ignore Pycharm
 .idea
 
