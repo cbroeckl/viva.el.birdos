@@ -43,6 +43,7 @@ vignettes/*.pdf
 .venv
 # Ignore Pycharm
 .idea
+*/.idea
 
 # pkgdown site
 docs/
