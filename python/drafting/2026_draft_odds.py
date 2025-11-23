@@ -85,7 +85,7 @@ def draft(lottery, record_order, ineligible):
     eligible_top_nine_teams_picked = 0
     for team in record_order:
         if team not in ineligible:
-            lottery, record_order, draft_order = pick(draft_order, lottery, record_order)
+            lottery, record_order, draft_order = pick(draft_order, lottery, record_order, False)
             eligible_top_nine_teams_picked += 1
 
         if eligible_top_nine_teams_picked > 2:
@@ -95,8 +95,11 @@ def draft(lottery, record_order, ineligible):
     return draft_order
 
 
-def pick(draft_order, lottery, record_order):
-    choice = np.random.choice(lottery)
+def pick(draft_order, lottery, record_order, random = True):
+    if random:
+        choice = np.random.choice(lottery)
+    else:
+        choice = lottery[0]
     draft_order = np.append(draft_order, choice)
     lottery = lottery[lottery != choice]
     record_order = record_order[record_order != choice]
@@ -112,6 +115,10 @@ def main():
         record_copy = np.copy(record_order)
         order = draft(lottery_copy, record_copy, ineligible_teams)
         cardinals_spot = np.where(order == "STL")[0]
+        if cardinals_spot == 6:
+            print("Drafting 7th???")
+            print(order)
+            exit(1)
         # Don't forget, arrays are zero-indexed but lotteries aren't!
         cardinals_draft_spots = np.append(cardinals_draft_spots, cardinals_spot + 1)
 

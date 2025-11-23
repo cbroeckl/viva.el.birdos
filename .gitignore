@@ -42,8 +42,7 @@ vignettes/*.pdf
 # Python virtual environemtn 
 .venv
 # Ignore Pycharm
-.idea
-*/.idea
+.idea/
 
 # pkgdown site
 docs/
