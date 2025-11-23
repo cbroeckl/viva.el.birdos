@@ -115,10 +115,6 @@ def main():
         record_copy = np.copy(record_order)
         order = draft(lottery_copy, record_copy, ineligible_teams)
         cardinals_spot = np.where(order == "STL")[0]
-        if cardinals_spot == 6:
-            print("Drafting 7th???")
-            print(order)
-            exit(1)
         # Don't forget, arrays are zero-indexed but lotteries aren't!
         cardinals_draft_spots = np.append(cardinals_draft_spots, cardinals_spot + 1)
 
