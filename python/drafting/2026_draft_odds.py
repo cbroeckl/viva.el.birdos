@@ -1,3 +1,6 @@
+import multiprocessing
+from multiprocessing import Pool
+from collections import Counter
 import numpy as np
 import pprint
 
@@ -13,8 +16,12 @@ import pprint
 
 """
 
-NUM_SIMULATIONS = 1_000_000
+NUM_SIMULATIONS = 3_000_000
 
+# Globals for parallelism
+_LOTTERY = None
+_RECORD_ORDER = None
+_INELIGIBLE = None
 
 def set_up_data():
     """
@@ -105,28 +112,37 @@ def pick(draft_order, lottery, record_order, random = True):
     record_order = record_order[record_order != choice]
     return lottery, record_order, draft_order
 
+def init_worker(lottery, record_order, ineligible):
+    global _LOTTERY, _RECORD_ORDER, _INELIGIBLE
+    # store copies in worker process memory (cheap to pickle for these small arrays)
+    _LOTTERY = np.copy(lottery)
+    _RECORD_ORDER = np.copy(record_order)
+    _INELIGIBLE = np.copy(ineligible)
+
+def worker_sim(_):
+    # perform a single simulation using the per-process globals
+    lottery_copy = np.copy(_LOTTERY)
+    record_copy = np.copy(_RECORD_ORDER)
+    order = draft(lottery_copy, record_copy, _INELIGIBLE)
+    # Don't forget, arrays are zero-indexed but lotteries aren't!
+    pos = int(np.where(order == "STL")[0][0] + 1)
+    return pos
+
 def main():
-    cardinals_draft_spots = np.array([])
-    lottery, record_order, ineligible_teams = set_up_data()
+    multiprocessing.set_start_method("spawn", force=True)  # recommended on macOS
+    lottery, record_order, ineligible = set_up_data()
 
-    for _ in range(NUM_SIMULATIONS):
-        # Make copies since these records will be modified
-        lottery_copy = np.copy(lottery)
-        record_copy = np.copy(record_order)
-        order = draft(lottery_copy, record_copy, ineligible_teams)
-        cardinals_spot = np.where(order == "STL")[0]
-        # Don't forget, arrays are zero-indexed but lotteries aren't!
-        cardinals_draft_spots = np.append(cardinals_draft_spots, cardinals_spot + 1)
+    n_cpus = max(1, multiprocessing.cpu_count() - 1)
+    chunk_size = max(1, NUM_SIMULATIONS // (n_cpus * 4))
 
-    cardinals_draft_spots = np.array(cardinals_draft_spots)
-    draft_spot_values, draft_spot_counts = np.unique(cardinals_draft_spots, return_counts=True)
-    raw_draft_result = {int(k): int(v) for k, v in zip(draft_spot_values, draft_spot_counts)}
-    percent_draft_result = {}
+    counter = Counter()
 
-    for key in raw_draft_result:
-        percentage = raw_draft_result[key] / NUM_SIMULATIONS
-        percent_draft_result[key] = f"{percentage:.5%}"
+    with Pool(processes=n_cpus, initializer=init_worker, initargs=(lottery, record_order, ineligible)) as pool:
+        # stream results to avoid storing all positions in memory
+        for pos in pool.imap_unordered(worker_sim, range(NUM_SIMULATIONS), chunksize=chunk_size):
+            counter[pos] += 1
 
+    percent_draft_result = {k: f"{v/NUM_SIMULATIONS:.5%}" for k, v in sorted(counter.items())}
     pprint.pprint(percent_draft_result)
 
 if __name__ == "__main__":
