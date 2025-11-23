@@ -1,3 +1,6 @@
+import multiprocessing
+from multiprocessing import Pool
+from collections import Counter
 import numpy as np
 import pprint
 
@@ -10,11 +13,15 @@ import pprint
 
     A script to estimate the Cardinals' 2026 MLB Draft position odds by
     simulating the draft.
-                                                           
+
 """
 
-NUM_SIMULATIONS = 1_000_000
+NUM_SIMULATIONS = 3_000_000
 
+# Globals for parallelism
+_LOTTERY = None
+_RECORD_ORDER = None
+_INELIGIBLE = None
 
 def set_up_data():
     """
@@ -40,20 +47,20 @@ def set_up_data():
         Nationals (.407) -- ineligible
         Angels (.444) -- ineligible
     """
-    record_order = [
+    record_order = np.array([
         "COL", "CHW", "WAS", "MIN", "PIT", "LAA",
         "BAL", "ATH", "ATL", "TBR", "STL", "MIA",
         "ARI", "TEX", "SFG", "KCR", "NYM", "HOU",
-    ]
+    ])
 
-    ineligible = [ "COL", "WAS", "LAA", ]
+    ineligible = np.array([ "COL", "WAS", "LAA", ])
 
     lottery = np.concatenate(
         [np.full(2773, "CHW"), np.full(2118, "MIN"), np.full(1681, "PIT"),
-            np.full(924, "BAL"), np.full(655, "ATH"), np.full(454, "ATL"),
-            np.full(303, "TBR"), np.full(235, "STL"), np.full(185, "MIA"),
-            np.full(151, "ARI"), np.full(134, "TEX"), np.full(101, "SFG"),
-            np.full(84, "KCR"), np.full(67, "NYM"), np.full(34, "HOU"),]
+         np.full(924, "BAL"), np.full(655, "ATH"), np.full(454, "ATL"),
+         np.full(303, "TBR"), np.full(235, "STL"), np.full(185, "MIA"),
+         np.full(151, "ARI"), np.full(134, "TEX"), np.full(101, "SFG"),
+         np.full(84, "KCR"), np.full(67, "NYM"), np.full(34, "HOU"),]
     )
 
     return lottery, record_order, ineligible
@@ -75,17 +82,17 @@ def draft(lottery, record_order, ineligible):
                attempted to reproduce that logic, I'm just taking MLB's
                word for it. They should know.
     """
-    draft_order = []
+    draft_order = np.array([])
 
     # the lottery for the first six spots
     for _ in range(6):
-        lottery, record_order = pick(draft_order, lottery, record_order)
+        lottery, record_order, draft_order = pick(draft_order, lottery, record_order)
 
     # Round out the top-9, since ineligible teams aren't allowed to pick under 10
     eligible_top_nine_teams_picked = 0
     for team in record_order:
         if team not in ineligible:
-            lottery, record_order = pick(draft_order, lottery, record_order)
+            lottery, record_order, draft_order = pick(draft_order, lottery, record_order, False)
             eligible_top_nine_teams_picked += 1
 
         if eligible_top_nine_teams_picked > 2:
@@ -95,33 +102,48 @@ def draft(lottery, record_order, ineligible):
     return draft_order
 
 
-def pick(draft_order, lottery, record_order):
-    choice = np.random.choice(lottery)
-    draft_order.append(choice)
+def pick(draft_order, lottery, record_order, random = True):
+    if random:
+        choice = np.random.choice(lottery)
+    else:
+        choice = lottery[0]
+    draft_order = np.append(draft_order, choice)
     lottery = lottery[lottery != choice]
     record_order = record_order[record_order != choice]
-    return lottery, record_order
+    return lottery, record_order, draft_order
 
+def init_worker(lottery, record_order, ineligible):
+    global _LOTTERY, _RECORD_ORDER, _INELIGIBLE
+    # store copies in worker process memory (cheap to pickle for these small arrays)
+    _LOTTERY = np.copy(lottery)
+    _RECORD_ORDER = np.copy(record_order)
+    _INELIGIBLE = np.copy(ineligible)
+
+def worker_sim(_):
+    # perform a single simulation using the per-process globals
+    lottery_copy = np.copy(_LOTTERY)
+    record_copy = np.copy(_RECORD_ORDER)
+    order = draft(lottery_copy, record_copy, _INELIGIBLE)
+    # Don't forget, arrays are zero-indexed but lotteries aren't!
+    pos = int(np.where(order == "STL")[0][0] + 1)
+    return pos
+
+def main():
+    multiprocessing.set_start_method("spawn", force=True)  # recommended on macOS
+    lottery, record_order, ineligible = set_up_data()
+
+    n_cpus = max(1, multiprocessing.cpu_count() - 1)
+    chunk_size = max(1, NUM_SIMULATIONS // (n_cpus * 4))
+
+    counter = Counter()
+
+    with Pool(processes=n_cpus, initializer=init_worker, initargs=(lottery, record_order, ineligible)) as pool:
+        # stream results to avoid storing all positions in memory
+        for pos in pool.imap_unordered(worker_sim, range(NUM_SIMULATIONS), chunksize=chunk_size):
+            counter[pos] += 1
+
+    percent_draft_result = {k: f"{v/NUM_SIMULATIONS:.5%}" for k, v in sorted(counter.items())}
+    pprint.pprint(percent_draft_result)
 
 if __name__ == "__main__":
-    cardinals_draft_spots = []
-    lottery, record_order, ineligible_teams = set_up_data()
-
-    for _ in range(NUM_SIMULATIONS):
-        # Make copies since these records will be modified
-        lottery_copy = np.copy(lottery)
-        record_copy = np.copy(record_order)
-        order = draft(lottery_copy, record_copy, ineligible_teams)
-        cardinals_spot = np.where(order == "STL")[0]
-        cardinals_draft_spots.append(cardinals_spot + 1)
-
-    cardinals_draft_spots = np.array(cardinals_draft_spots)
-    values, counts = np.unique(cardinals_draft_spots, return_counts=True)
-    raw_result = {int(k): int(v) for k, v in zip(values, counts)}
-    percent_result = {}
-    
-    for key in raw_result:
-        percentage = (raw_result[key] / NUM_SIMULATIONS)
-        percent_result[key] = f'{percentage:.2%}'
-
-    pprint.pprint(percent_result)
+    main()
