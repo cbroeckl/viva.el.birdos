@@ -1,6 +1,7 @@
 import numpy as np
-import pandas as pds
+import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from matplotlib.ticker import PercentFormatter
 
 TOP_WAR_CUTOFF = 4.0
@@ -37,7 +38,7 @@ def main():
     # Min Innings: 100
     # Years 2008-2025
     # Separate seasons
-    pitchers_df = pds.read_csv("../data/fg-pitchers-2008-2025.csv")
+    pitchers_df = pd.read_csv("../data/fg-pitchers-2008-2025.csv")
 
     # pitchers_df.drop(pitchers_df[pitchers_df["Season"] == 2021].index, inplace=True)
 
@@ -61,71 +62,98 @@ def main():
         "{:.2%}".format
     )
 
+    # Reshape data for seaborn (long format)
+    plot_data = pd.melt(
+        compiled_stats,
+        id_vars=["Season"],
+        value_vars=["mid_war_pct", "top_war_pct"],
+        var_name="WAR_Category",
+        value_name="Percentage",
+    )
+
+    # Rename categories for better labels
+    plot_data["WAR_Category"] = plot_data["WAR_Category"].map(
+        {"mid_war_pct": "Mid WAR (1.5-3.0)", "top_war_pct": "Top WAR (4.0+)"}
+    )
+
+    # Create figure
     fig, ax = plt.subplots(figsize=(12, 6))
-    plt.plot(
-        compiled_stats["Season"],
-        compiled_stats["mid_war_pct"],
-        marker="o",
-        label="Mid WAR %",
-        linewidth=2,
-        color="firebrick",
-    )
-    plt.plot(
-        compiled_stats["Season"],
-        compiled_stats["top_war_pct"],
-        marker="s",
-        label="Top WAR %",
-        linewidth=2,
-        color="tab:blue",
-    )
 
-    # Add trend lines
-    add_trendline(
-        ax,
-        compiled_stats["Season"],
-        compiled_stats["mid_war_pct"],
-        "Mid WAR % Trend",
-        "salmon",
+    # Create lineplot with seaborn
+    sns.lineplot(
+        data=plot_data,
+        x="Season",
+        y="Percentage",
+        hue="WAR_Category",
+        style="WAR_Category",
+        markers={"Mid WAR (1.5-3.0)": "o", "Top WAR (4.0+)": "s"},
+        dashes=False,
+        linewidth=2.5,
+        markersize=8,
+        palette={"Mid WAR (1.5-3.0)": "firebrick", "Top WAR (4.0+)": "tab:blue"},
+        ax=ax,
     )
 
-    add_trendline(
-        ax,
-        compiled_stats["Season"],
-        compiled_stats["top_war_pct"],
-        "Top WAR % Trend",
-        "tab:cyan",
-    )
-
-    plt.xlabel("Season")
-    plt.ylabel("% of Pitchers in Bucket")
-    plt.title("Mid vs Top WAR Percentage by Season")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-
-    # Force integer x-axis ticks
-    plt.xticks(compiled_stats["Season"])
-    # Format y-axis as percentages
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
-
-    for idx, row in compiled_stats.iterrows():
-        plt.annotate(
-            f"{row['mid_war_pct']:.2%}",
-            xy=(row["Season"], row["mid_war_pct"]),
-            xytext=(0, -15),  # 5 points above
-            textcoords="offset points",
-            ha="center",
-            fontsize=8,
-            color="black",
+    # Add regression lines using seaborn's regplot
+    for category, color, alpha_color in [
+        ("Mid WAR (1.5-3.0)", "firebrick", "salmon"),
+        ("Top WAR (4.0+)", "tab:blue", "tab:cyan"),
+    ]:
+        category_data = plot_data[plot_data["WAR_Category"] == category]
+        sns.regplot(
+            data=category_data,
+            x="Season",
+            y="Percentage",
+            scatter=False,
+            line_kws={"linestyle": "--", "alpha": 0.7, "linewidth": 1.5},
+            color=alpha_color,
+            ax=ax,
         )
 
-        plt.annotate(
-            f"{row['top_war_pct']:.2%}",
-            xy=(row["Season"], row["top_war_pct"]),
-            xytext=(0, -15),  # 5 points below
+    # Customize plot
+    ax.set_xlabel("Season", fontsize=12)
+    ax.set_ylabel("% of Pitchers in Bucket", fontsize=12)
+    ax.set_title("Mid vs Top WAR Percentage by Season", fontsize=14, fontweight="bold")
+
+    # Format y-axis as percentages
+    ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
+
+    # Force integer x-axis ticks
+    ax.set_xticks(compiled_stats["Season"])
+
+    # Improve legend
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(
+        handles[:2],  # Only show the main line labels, not regression
+        labels[:2],
+        title="WAR Category",
+        loc="best",
+        frameon=True,
+        shadow=True,
+    )
+
+    # Add value annotations
+    for _, row in compiled_stats.iterrows():
+        ax.annotate(
+            f"{row['mid_war_pct']:.1%}",
+            xy=(row["Season"], row["mid_war_pct"]),
+            xytext=(0, -15),
             textcoords="offset points",
             ha="center",
-            fontsize=8,
+            fontsize=7,
             color="black",
+            alpha=0.8,
+        )
+
+        ax.annotate(
+            f"{row['top_war_pct']:.1%}",
+            xy=(row["Season"], row["top_war_pct"]),
+            xytext=(0, -15),
+            textcoords="offset points",
+            ha="center",
+            fontsize=7,
+            color="black",
+            alpha=0.8,
         )
 
     plt.tight_layout()
