@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.ticker import PercentFormatter
+from pandas import DataFrame
 
 TOP_WAR_CUTOFF = 4.0
 MID_WAR_MIN = 1.5
@@ -33,14 +34,15 @@ def add_trendline(ax, x, y, label, color, **kwargs):
 
 
 def main():
-    # Exported from Fangraphs by hand, using Leaders > Pitching
-    # Positional Split: SP
-    # Min Innings: 100
-    # Years 2008-2025
-    # Separate seasons
+    """
+    Calculate pitcher WAR distribution using an export with the following criteria:
+     - Exported from Fangraphs by hand, using Leaders > Pitching
+     - Positional Split: SP
+     - Min Innings: 100
+     - Years 2008-2025
+     - Separate seasons
+    """
     pitchers_df = pd.read_csv("../data/fg-pitchers-2008-2025.csv")
-
-    # pitchers_df.drop(pitchers_df[pitchers_df["Season"] == 2021].index, inplace=True)
 
     compiled_stats = (
         pitchers_df.groupby("Season")
@@ -62,6 +64,14 @@ def main():
         "{:.2%}".format
     )
 
+    build_chart(compiled_stats)
+
+    # For ease of pasting into a blog post
+    markdown_table = compiled_stats.drop(columns=["top_war_pct", "mid_war_pct"])
+    print(markdown_table.to_markdown())
+
+
+def build_chart(compiled_stats: DataFrame):
     # Reshape data for seaborn (long format)
     plot_data = pd.melt(
         compiled_stats,
@@ -158,9 +168,6 @@ def main():
 
     plt.tight_layout()
     plt.show()
-
-    markdown_table = compiled_stats.drop(columns=["top_war_pct", "mid_war_pct"])
-    print(markdown_table.to_markdown())
 
 
 if __name__ == "__main__":
