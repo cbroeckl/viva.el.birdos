@@ -7,7 +7,11 @@ library(tidyverse)
 # from: https://github.com/BillPetti/baseballr/issues/257
 
 bref_daily_batter_milb <- function(t1, t2, level = "aaa") {
-  payload <- xml2::read_html(paste0("http://www.baseball-reference.com/leagues/daily.cgi?user_team=&bust_cache=&type=b&lastndays=7&dates=fromandto&fromandto=", t1, ".", t2, "&level=", level, "&franch=&stat=&stat_value=0"))
+
+  # t1 = "2019-01-01"; t2 = "2019-12-25"; level = "aaa"
+  payload <- xml2::read_html(
+    paste0("http://www.baseball-reference.com/leagues/daily.cgi?user_team=&bust_cache=&type=b&lastndays=7&dates=fromandto&fromandto=", t1, ".", t2, "&level=", level, "&franch=&stat=&stat_value=0")
+    )
   
   df <- payload %>%
     rvest::html_elements(xpath = '//*[@id="daily"]') %>%
@@ -44,13 +48,16 @@ bref_daily_batter_milb <- function(t1, t2, level = "aaa") {
     dplyr::select("bbref_id", tidyr::everything()) %>% dplyr::arrange(desc(.data$PA), desc(.data$OPS))
   
   return(df)
+  
 }
 
 yrs <- c(2000:2019, 2021:2025)
 levs <- c("aaa", "aa", "higha", "a", "lowa", "rk")
-stats.list <- list(length = 0)
+stats.list <- as.list(vector(length = 0))
 for(yr in yrs) {
   for(lev in levs) {
+    Sys.sleep(30)
+    closeAllConnections()
     dt <- paste0(yr, c("-1-01", "-12-31"))
     d <- tryCatch(
       #this is the chunk of code we want to run
@@ -60,6 +67,34 @@ for(yr in yrs) {
         return(NA)
       }
     )
+    
+    if(!is.data.frame(d)) {
+      Sys.sleep(81)
+      closeAllConnections()
+      dt <- paste0(yr, c("-1-01", "-12-31"))
+      d <- tryCatch(
+        #this is the chunk of code we want to run
+        {bref_daily_batter_milb(t1 = dt[1], t2 = dt[2], level = lev)
+          #when it throws an error, the following block catches the error
+        }, error = function(msg){
+          return(NA)
+        }
+      )
+    }
+    
+    if(!is.data.frame(d)) {
+      Sys.sleep(55)
+      closeAllConnections()
+      dt <- paste0(yr, c("-1-01", "-12-31"))
+      d <- tryCatch(
+        #this is the chunk of code we want to run
+        {bref_daily_batter_milb(t1 = dt[1], t2 = dt[2], level = lev)
+          #when it throws an error, the following block catches the error
+        }, error = function(msg){
+          return(NA)
+        }
+      )
+    }
     
     if(is.data.frame(d)) {
       d <- data.frame(
@@ -74,4 +109,11 @@ for(yr in yrs) {
 }
 
 save(stats.list, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/minor.league.batters.Rdata")
-
+years.collected <- vector()
+levels.collected <- vector()
+for(i in 2:length(stats.list)){
+  years.collected <- c(years.collected, stats.list[[i]][1,1])
+  levels.collected <- c(levels.collected, stats.list[[i]][1,2])
+}
+table(years.collected)
+cbind(years.collected, levels.collected)
