@@ -73,5 +73,5 @@ for(yr in yrs) {
   }
 }
 
-save(stats.list, file = )
+save(stats.list, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/minor.league.batters.Rdata")
 
