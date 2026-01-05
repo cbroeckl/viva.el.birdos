@@ -211,7 +211,7 @@ RBI <- aggregate(milb.batting$RBI, by = list(milb.batting$lv.yr), FUN = "sum")[,
 BB <- aggregate(milb.batting$BB, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
 IBB <- aggregate(milb.batting$IBB, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
 SO <- aggregate(milb.batting$SO, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
-HPB <- aggregate(milb.batting$HBP, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
+HBP <- aggregate(milb.batting$HBP, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
 SH <- aggregate(milb.batting$SH, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
 SF <- aggregate(milb.batting$SF, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
 SB <- aggregate(milb.batting$SB, by = list(milb.batting$lv.yr), FUN = "sum", na.rm = TRUE)[,2]
@@ -235,89 +235,377 @@ lev.average <- data.frame(
   BB,
   IBB,
   SO,
-  HPB,
+  HBP,
   SH,
   SF,
   SB,
   CS
 )
+
+lev.average$year.level <- paste(lev.average$year, lev.average$level)
+
 save(lev.average, 
      file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/lev.average.Rdata"
 )
 
+load("C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/lev.average.Rdata")
 
 ggplot(data = lev.average, aes(x = yr, y = SB/(SB+CS), color = lg)) + 
   geom_line() 
 
 
-
-
-
-
-G <- aggregate(milb.batting$G, by = list(milb.batting$Level), FUN = "sum")
-lg <- sapply(1:nrow(G), FUN = function(x) unlist(strsplit(G[x,1], "_"))[1])
-yr <- as.numeric(sapply(1:nrow(G), FUN = function(x) unlist(strsplit(G[x,1], "_"))[2]))
-G <- aggregate(milb.batting$G, by = list(milb.batting$Level), FUN = "sum")[,2]
-PA <- aggregate(milb.batting$PA, by = list(milb.batting$Level), FUN = "sum")[,2]
-AB <- aggregate(milb.batting$AB, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-H <- aggregate(milb.batting$H, by = list(milb.batting$Level), FUN = "sum")[,2]
-R <- aggregate(milb.batting$R, by = list(milb.batting$Level), FUN = "sum")[,2]
-X2B <- aggregate(milb.batting$X2B, by = list(milb.batting$Level), FUN = "sum")[,2]
-X3B <- aggregate(milb.batting$X3B, by = list(milb.batting$Level), FUN = "sum")[,2]
-HR <- aggregate(milb.batting$HR, by = list(milb.batting$Level), FUN = "sum")[,2]
-RBI <- aggregate(milb.batting$RBI, by = list(milb.batting$Level), FUN = "sum")[,2]
-BB <- aggregate(milb.batting$BB, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-IBB <- aggregate(milb.batting$IBB, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-SO <- aggregate(milb.batting$SO, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-HPB <- aggregate(milb.batting$HBP, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-SH <- aggregate(milb.batting$SH, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-SF <- aggregate(milb.batting$SF, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-SB <- aggregate(milb.batting$SB, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-CS <- aggregate(milb.batting$CS, by = list(milb.batting$Level), FUN = "sum", na.rm = TRUE)[,2]
-
-lg.average <- data.frame(
-  year = yr, 
-  level = lg,
-  PA, 
-  AB,
-  H,
-  R,
-  X2B,
-  X3B,
-  HR,
-  RBI,
-  BB,
-  IBB,
-  SO,
-  HPB,
-  SH,
-  SF,
-  SB,
-  CS
-)
-save(lg.average, 
-     file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/lg.average.Rdata"
-)
-ggplot(data = lg.average, aes(x = yr, y = SB/(SB+CS), color = level)) + 
-  geom_line() 
-## this isn't useful, unless i get rid of players who played at multiple levels/leagues in a given year.  
+## league average is more difficult given source data. I would have to get rid of players who played at multiple levels/leagues in a given year.  
 ## once i do that, i am not confident the league correction is accurate.  better to just not use it.  instead, correct by level only 
 ## that is: rookie, A, highA, AA, and AAA
-
+## would have to go back, maybe to invidual player summaries, or get day-by-day data. 
 
 ## now, normalize each stat to level.yr average
 ## create league/year average table, same length of milb.batting.2
-denom <- milb.batting.2[,1:6]
+head(lev.average)
+head(milb.batting.2)
+milb.batting.3 <- milb.batting.2
+milb.batting.3$year.level <- paste(milb.batting.3$season.min, milb.batting.3$level)
+milb.batting.3 <- merge(milb.batting.3, lev.average, by = "year.level", all.x = TRUE, all.y = FALSE)
+names(milb.batting.3) <- gsub(".x", "", names(milb.batting.3), fixed = TRUE)
 
-milb.batting.3$BA <- (milb.batting.2$H/milb.batting.2$AB)
-milb.batting.3$OBP <- (milb.batting.2$H + milb.batting.2$BB + milb.batting.2$HBP)/(milb.batting.2$AB + milb.batting.2$BB + milb.batting.2$HBP + milb.batting.2$SF)
-milb.batting.3$X1B <- milb.batting.2$H - milb.batting.2$X2B - milb.batting.2$X3B - milb.batting.2$HR
-milb.batting.3$SLG <- (milb.batting.2$X1B + (2*milb.batting.2$X2B) + (3*milb.batting.2$X3B) + (4*milb.batting.2$HR))/milb.batting.2$AB
-milb.batting.3$OPS <- milb.batting.2$OBP + milb.batting.2$SLG
-milb.batting.3$ISO <- milb.batting.2$SLG - milb.batting.2$BA
-milb.batting.3$ISOP <- milb.batting.2$OBP - milb.batting.2$BA
-milb.batting.3$BJM <- (milb.batting.2$X2B + milb.batting.2$X3B + milb.batting.2$HR)/milb.batting.2$AB
-milb.batting.3$'BB%' <- milb.batting.2$BB/milb.batting.2$PA
-milb.batting.3$'K%' <- milb.batting.2$SO/milb.batting.2$PA
+milb.batting.3$BA <- (milb.batting.3$H/milb.batting.3$AB)
+milb.batting.3$OBP <- (milb.batting.3$H + milb.batting.3$BB + milb.batting.3$HBP)/(milb.batting.3$AB + milb.batting.3$BB + milb.batting.3$HBP + milb.batting.3$SF)
+milb.batting.3$X1B <- milb.batting.3$H - milb.batting.3$X2B - milb.batting.3$X3B - milb.batting.3$HR
+milb.batting.3$SLG <- (milb.batting.3$X1B + (2*milb.batting.3$X2B) + (3*milb.batting.3$X3B) + (4*milb.batting.3$HR))/milb.batting.3$AB
+milb.batting.3$OPS <- milb.batting.3$OBP + milb.batting.3$SLG
+milb.batting.3$ISO <- milb.batting.3$SLG - milb.batting.3$BA
+milb.batting.3$ISOP <- milb.batting.3$OBP - milb.batting.3$BA
+milb.batting.3$BJM <- (milb.batting.3$X2B + milb.batting.3$X3B + milb.batting.3$HR)/milb.batting.3$AB
+milb.batting.3$'BB%' <- milb.batting.3$BB/milb.batting.3$PA
+milb.batting.3$'K%' <- milb.batting.3$SO/milb.batting.3$PA
+
+milb.batting.3$BA.y <- (milb.batting.3$H.y/milb.batting.3$AB.y)
+milb.batting.3$OBP.y <- (milb.batting.3$H.y + milb.batting.3$BB.y + milb.batting.3$HBP.y)/(milb.batting.3$AB.y + milb.batting.3$BB.y + milb.batting.3$HBP.y + milb.batting.3$SF.y)
+milb.batting.3$X1B.y <- milb.batting.3$H.y - milb.batting.3$X2B.y - milb.batting.3$X3B.y - milb.batting.3$HR.y
+milb.batting.3$SLG.y <- (milb.batting.3$X1B.y + (2*milb.batting.3$X2B.y) + (3*milb.batting.3$X3B.y) + (4*milb.batting.3$HR.y))/milb.batting.3$AB.y
+milb.batting.3$OPS.y <- milb.batting.3$OBP.y + milb.batting.3$SLG.y
+milb.batting.3$ISO.y <- milb.batting.3$SLG.y - milb.batting.3$BA.y
+milb.batting.3$ISOP.y <- milb.batting.3$OBP.y - milb.batting.3$BA.y
+milb.batting.3$BJM.y <- (milb.batting.3$X2B.y + milb.batting.3$X3B.y + milb.batting.3$HR.y)/milb.batting.3$AB.y
+milb.batting.3$'BB%.y' <- milb.batting.3$BB.y/milb.batting.3$PA.y
+milb.batting.3$'K%.y' <- milb.batting.3$SO.y/milb.batting.3$PA.y
+
+## plus calcs
+milb.batting.3$'BA+' <- 100*((milb.batting.3$BA/milb.batting.3$BA.y))
+hist(milb.batting.3$'BA+')
+milb.batting.3$'OBP+' <- 100*((milb.batting.3$OBP/milb.batting.3$OBP.y))
+hist(milb.batting.3$'OBP+')
+milb.batting.3$'SLG+' <- 100*((milb.batting.3$SLG/milb.batting.3$SLG.y))
+hist(milb.batting.3$'SLG+')
+milb.batting.3$'OPS+' <- 100*((milb.batting.3$OPS/milb.batting.3$OPS.y))
+hist(milb.batting.3$'OPS+')
+milb.batting.3$'ISO+' <- 100*((milb.batting.3$ISO/milb.batting.3$ISO.y))
+hist(milb.batting.3$'ISO+')
+milb.batting.3$'ISOP+' <- 100*((milb.batting.3$ISOP/milb.batting.3$ISOP.y))
+hist(milb.batting.3$'ISOP+')
+milb.batting.3$'BJM+' <- 100*((milb.batting.3$BJM/milb.batting.3$BJM.y))
+hist(milb.batting.3$'BJM+')
+milb.batting.3$'BB%+' <- 100*((milb.batting.3$'BB%'/milb.batting.3$'BB%.y'))
+hist(milb.batting.3$'BB%+')
+milb.batting.3$'K%+' <- 100*((milb.batting.3$'K%.y'/milb.batting.3$'K%'))
+hist(milb.batting.3$'K%+')
+save(milb.batting.3, file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/milb.batting.3.Rdata")
+
+# load("C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/milb.batting.3.Rdata")
+# will now need to reshape
+## example code: 
+library(dplyr)
+library(stringr)
+library(tidyr)
+# df <- tibble(PIN = c(1001, 1001, 1002, 1002), time = c(1, 2, 1, 2), age = c(84, 86, 22, 24), height = c(58, 58, 60, 62))
+# df_wide <- reshape(df, 
+#                    timevar=c("time"),
+#                    idvar=c("PIN"),
+#                    dir="wide")
+# df %>% 
+#   mutate(time = str_c('t', time)) %>%
+#   pivot_wider(names_from = time, values_from = c(age, height))
+
+## and for my dataset
+milb.batting.4 <- milb.batting.3[c("bbref_id", "name", "age.min", "season.min", "season.max", "level", "PA", "AB", 
+                                   # "BA", "OBP", "SLG", "OPS", "ISO", "ISOP", "BJM", "BB%", "K%",
+                                   "BA+", "OBP+", "SLG+", "OPS+", "ISO+", "ISOP+", "BJM+", "BB%+", "K%+")]
+milb.batting.4$level <- factor(milb.batting.4$level, levels = c("rookie", "a", "higha", "aa", "aaa"))
+id.name <- milb.batting.4[,c("bbref_id", "name")]
+levels(milb.batting.4$level)
+
+## remove players with fewer than 300 total PA
+pa <- aggregate(milb.batting.4$PA, by = list(milb.batting.4$bbref_id), FUN = sum)
+keep <- pa[which(pa[,2]>=300),1]
+milb.batting.4 <- milb.batting.4[milb.batting.4$bbref_id %in% keep,]
+milb.batting.4 <- reshape(milb.batting.4,
+                          timevar = "level",
+                          idvar = "bbref_id",
+                          dir = "wide")
+## clean up names
+milb.batting.4$name <- sapply(1:nrow(milb.batting.4), FUN = function(x){
+  tmp <- unlist(milb.batting.4[x, grep("name.", names(milb.batting.4))])
+  tmp[which(!is.na(tmp))[1]]
+})
+milb.batting.4 <- milb.batting.4[,-grep("name.", names(milb.batting.4))]
+
+rookie <- which(substring(names(milb.batting.4), nchar(names(milb.batting.4))-1, nchar(names(milb.batting.4))) == "ie")
+a <- which(substring(names(milb.batting.4), nchar(names(milb.batting.4))-1, nchar(names(milb.batting.4))) == ".a")
+higha <- which(substring(names(milb.batting.4), nchar(names(milb.batting.4))-1, nchar(names(milb.batting.4))) == "ha")
+aa <- which(substring(names(milb.batting.4), nchar(names(milb.batting.4))-2, nchar(names(milb.batting.4))) == ".aa")
+aaa <- which(substring(names(milb.batting.4), nchar(names(milb.batting.4))-3, nchar(names(milb.batting.4))) == ".aaa")
+
+final.data <- data.frame(
+  milb.batting.4[,c("bbref_id", "name")],
+  milb.batting.4[,rookie],
+  milb.batting.4[,a],
+  milb.batting.4[,higha],
+  milb.batting.4[,aa],
+  milb.batting.4[,aaa], 
+  check.names = FALSE
+)
+save(final.data, 
+     file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
+# load("C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
+
+## test distance metrics. try euclidian first
+## find JJ weatherholt
+JJ <- grep("JJ Wetherholt", final.data$name)
+final.data[JJ,]
+
+# d <- dist(final.data[(JJ-1):(JJ+1),], method = 'manhattan', diag = TRUE)
+# d
+# 
+# # Calculate squared differences, sum, then sqrt
+# # For M where rows are vectors:
+# 
+# # test data
+v <- matrix(c(100, NA, 120, 200, 200, NA, 220, NA, 400, NA), nrow = 2, ncol = 5, byrow = TRUE)
+v
+d.test <- dist(v, diag = TRUE, upper = TRUE)
+d.test
+
+## the above demonstrates that any pairwise non-NA will return a euclidian distance,
+## when there are only NA values pairwise, NA is returned 
+## this is fine behavior to use. 
+
+# M <- matrix(1.01*c(100, 110, 120), nrow = 1, ncol = 3)
+# 
+# # euclidian distance
+# sq_diffs <- (M - v)^2
+# sum_sq <- rowSums(sq_diffs)
+# distances <- sqrt(sum_sq)
+# print(distances)
+# 
+# v <- final.data[JJ, 3:ncol(final.data)]
+# use <- which(!is.na(v))
+# v <- v[,use]
+# M <- final.data[(JJ+3), 3:ncol(final.data)]
+# M <- M[,use]
+# if(any(is.na(M))) {
+#   M[which (is.na(M))] <- 0
+# }
+# 
+# ## this works, but is kinda slow.  move subsetting and replacement of NA to DF level
+euclid <- function(x, y) {
+  use <- which(!is.na(x))
+  if(any(is.na(y))) {
+    y[is.na(y)] <- 0
+  }
+  sq_diffs <- (y[use] - x[use])^2
+  sum_sq <- rowSums(sq_diffs)
+  distance <- sqrt(sum_sq)
+  distance
+}
+tar
+euclid(x = final.data[JJ,3:ncol(final.data)], y = final.data[JJ+1,3:ncol(final.data)])
+
+dists <- rep(NA, nrow(final.data))
+for(i in 1:length(dists)) {
+  dists[i] <- euclid(x = final.data[JJ,3:ncol(final.data)], y = final.data[i,3:ncol(final.data)])
+}
+
+comps <- order(dists, decreasing = FALSE)[1:101]
+final.data[comps, "name"]
+
+## this function demonstrates the behavior i want.  only considers the non-NA levels for the player of interest. 
+## the default dist function is way faster.  to take advantage of that, prefilter by NA pattern
+na.pat <- data.frame(
+  'rookie' = as.integer(!is.na(final.data$PA.rookie)),
+  'a' = as.integer(!is.na(final.data$PA.a)),
+  'higha'= as.integer(!is.na(final.data$PA.higha)),
+  'aa' = as.integer(!is.na(final.data$PA.aa)),
+  'aaa' =as.integer(!is.na(final.data$PA.aaa))
+)
+
+na.pat$na.pat.st <- sapply(1:nrow(na.pat), FUN = function(x) paste0(na.pat[x,], collapse = ""))
+na.pats <- unique(na.pat$na.pat.st)
+
+cols.level <- list(
+  rookie = which(substring(names(final.data), nchar(names(final.data))-1, nchar(names(final.data))) == "ie"),
+  a <- which(substring(names(final.data), nchar(names(final.data))-1, nchar(names(final.data))) == ".a"),
+  higha <- which(substring(names(final.data), nchar(names(final.data))-1, nchar(names(final.data))) == "ha"),
+  aa <- which(substring(names(final.data), nchar(names(final.data))-2, nchar(names(final.data))) == ".aa"),
+  aaa <- which(substring(names(final.data), nchar(names(final.data))-3, nchar(names(final.data))) == ".aaa")
+)
+
+comps <- as.list(rep(NA, nrow(final.data)))
+names(comps) <- final.data$bbref_id
+
+for(i in 1:length(na.pats)){
+  use <- which(as.logical(as.integer(as.numeric(unlist(strsplit(na.pats[i], ""))))))
+  cols.selected <- as.vector(unlist(cols.level[use]))
+  row.use <- which(rowSums(na.pat[,use, drop = FALSE]) == length(use))
+  row.bbref_id <- final.data$bbref_id[row.use]
+  record.comps <- final.data$bbref_id[which(na.pat$na.pat.st == na.pats[i])]
+  row.name <- final.data$name[row.use]
+  fin.sub <- final.data[row.use ,cols.selected]
+  d <- as.matrix(dist(fin.sub))
+  d[is.infinite(d)] <- NA
+  d.norm <- d/max(d, na.rm = TRUE)
+  ## j <- which(row.name == "JJ Wetherholt")
+  for(j in 1:nrow(d)) {
+    if(row.bbref_id[j] %in% record.comps) {
+      if(is.data.frame(comps[[as.character(row.bbref_id[j])]])) {
+        stop('position occupied', "i =", i, " j =", j)
+      }
+      comp.v <- order(d[j,], decreasing = FALSE)[2:101]
+      comps[[as.character(row.bbref_id[j])]] <- data.frame(
+        'bbref_id' = row.bbref_id[comp.v],
+        'name'= row.name[comp.v],
+        'similarity' = round(1 - d.norm[j, comp.v],3)
+      )
+    }
+
+  }
+}
+
+save(comps, file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/comps.Rdata")
 
 
+dists <- rep(NA, nrow(final.data))
+for(i in 1:length(dists)) {
+  dists[i] <- euclid(x = final.data[JJ,3:ncol(final.data)], y = final.data[i,3:ncol(final.data)])
+}
+
+
+## try again.
+metadata <- c("bbref_id", "name")
+metadata <- c(metadata, names(final.data)[grep('PA.', names(final.data))], names(final.data)[grep('AB.', names(final.data))], names(final.data)[grep('season', names(final.data))])
+tmp <- final.data[,!(names(final.data) %in% metadata)]
+tmp <- as.matrix(tmp)
+tmp[which(is.nan((tmp)))] <- NA
+tmp[which(is.na(tmp))] <- 0
+## select only "+" stats
+# plus <- grep("+", names(tmp), fixed = TRUE)
+# tmp <- tmp[,plus]
+
+## calculate full matrix, extract top 100 similar for each player, excluding self
+tar <- grep('JJ Wetherholt', final.data$name )
+d <- dist(tmp, diag = TRUE, upper = FALSE)
+object.size(d)
+d <- as.matrix(d)
+object.size(d)
+range(d, na.rm = TRUE)
+d.norm <- d/max(d, na.rm = TRUE)
+
+use <- order(d.norm[tar,], decreasing = FALSE)[1:11]
+final.data[tar,1:4]
+final.data[use,1:4]
+d.norm[tar,use]
+final.data[use[1:3],]
+tmp[use[1:3],]
+
+dist(tmp[use[1:2],], diag = TRUE, upper = FALSE)
+
+
+
+final.data[tar, 1:4]
+tar.set <- tmp[tar, ]
+use <- which(!is.na(tar.set))
+tar.set <- tar.set[,use]
+tmp <- tmp[,use]
+tmp[(is.na(tmp))] <- 0
+
+euclid <- function(x, y) {
+  sq_diffs <- (y - x)^2
+  sum_sq <- rowSums(sq_diffs)
+  distance <- sqrt(sum_sq)
+  distance
+}
+
+dists <- rep(NA, nrow(final.data))
+for(i in 1:length(dists)) {
+  dists[i] <- euclid(x = tar.set, y = tmp[i,])
+}
+
+use <- order(dists, decreasing = FALSE)[1:11]
+cat(paste(final.data[use,'name'], collapse = '\n'))
+display <- final.data[use,]
+row.names(display) <- display$name
+display <- display[,-which(names(display) == "name")] 
+display <- display[,grep("+", names(display), fixed = TRUE)]
+t(round(display))[,]
+cat(paste(final.data[use,'name'], collapse = '\n'))
+
+
+## get MLB level data for same time frame
+# baseballr::bref_daily_batter()
+
+yrs <- c(2008:2025)
+# levs <- c("aaa", "a")
+mlb.list <- as.list(vector(length = 0))
+for(yr in yrs) {
+    
+    Sys.sleep(2)
+    closeAllConnections()
+    dt <- paste0(yr, c("-01-01", "-12-31"))
+    # if(yr >= 2019 & lev == 'rk') {
+    #   lev == "rookie"
+    # }
+    d <- tryCatch({
+      baseballr::fg_batter_leaders(startseason = as.character(yr), endseason = as.character(yr))
+    }, error = function(msg){
+      return(NA)
+    }
+    )
+  
+    
+    if(is.data.frame(d)) {
+      d <- d[,c("Season", "PlayerName", "xMLBAMID", "Offense", "wRC_plus", "PA")]
+      mlb.list[[length(mlb.list)+1]] <- d
+    }
+    rm(d)
+}
+
+mlb <- dplyr::bind_rows(mlb.list)
+all.mlb.ids <- unique(mlb$xMLBAMID)
+length(all.mlb.ids)
+mlb.6yr <- data.frame(
+  bbref_id = vector(length = 0, mode = 'character'),
+  Offense = vector(length = 0, mode = 'numeric'),
+  wRC_plus = vector(length = 0, mode = 'numeric'),
+  PA = vector(length = 0, mode = 'integer'),
+  n.season = vector(length = 0, mode = 'integer')
+)
+for(i in 1:length(all.mlb.ids)) {
+  use <- which(mlb$xMLBAMID == all.mlb.ids[i])
+  if(length(use) > 6) use <- use[1:6]
+  n.years <- length(use)
+  
+  
+  tmp <- data.frame(
+    bbref_id = all.mlb.ids[i],
+    Offense = sum(mlb$Offense[use], na.rm = TRUE),
+    wRC_plus = weighted.mean(mlb$wRC_plus[use], weights = mlb$PA[use], na.rm = TRUE),
+    PA = sum(mlb$PA[use]),
+    n.season = n.years
+  )
+  mlb.6yr <- rbind(mlb.6yr, tmp)
+}
+head(mlb.6yr)
+mlb.6yr$Offense.600PA <- 600*mlb.6yr$Offense/mlb.6yr$PA
+
+
+final.data <- merge(final.data, mlb.6yr, by = 'bbref_id', all.x = TRUE, all.y = FALSE)
+head(final.data)
