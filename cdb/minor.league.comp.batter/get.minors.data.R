@@ -444,25 +444,42 @@ na.pats <- unique(na.pat$na.pat.st)
 ## create dataset for distance metric
 use.pa <- TRUE
 use.ab <- FALSE
-transform.pa.ab <- 'sq.rt' ## 'sq.rt' or 'plus'
+transform.pa.ab <- 'plus' ## 'sq.rt' or 'plus'
 use.age <- TRUE
+transform.age <- TRUE
+standardize <- TRUE
 
 for.sim <- grep("+", names(final.data), fixed = TRUE)
 if(use.pa) {for.sim <- c(for.sim,   grep("PA.", names(final.data), fixed = TRUE))}
 if(use.ab) {for.sim <- c(for.sim, grep("AB.", names(final.data), fixed = TRUE))}
 if(use.age) {for.sim <- c(for.sim, grep("age.min.", names(final.data), fixed = TRUE))}
 for.sim <- final.data[,for.sim]
-if(use.pa & sq.rt) {
+if(use.age & transform.age) {
+  do <- grep("age.min.", names(for.sim), fixed = TRUE)
+  for(i in 1:length(do)) {
+    for.sim[,do[i]] <- 100*for.sim[,do[i]]/mean(for.sim[,do[i]], na.rm = TRUE)
+  }
+}
+if(use.pa & (transform.pa.ab == 'sq.rt')) {
   do <- grep("PA.", names(for.sim), fixed = TRUE)
   for(i in 1:length(do)) {
     for.sim[,do[i]] <- for.sim[,do[i]]^0.5
   }
 }
-if(use.ab & sq.rt) {
+if(use.pa & (transform.pa.ab == 'plus')) {
+  do <- grep("PA.", names(for.sim), fixed = TRUE)
+  for(i in 1:length(do)) {
+    for.sim[,do[i]] <- 100*for.sim[,do[i]]/mean(for.sim[,do[i]], na.rm = TRUE)
+  }
+}
+if(use.ab & (transform.pa.ab == 'sq.rt')) {
   do <- grep("AB.", names(for.sim), fixed = TRUE)
   for(i in 1:length(do)) {
-    for.sim[,do[i]] <- for.sim[,do[i]]^0.5
+    for.sim[,do[i]] <- 100*for.sim[,do[i]]/mean(for.sim[,do[i]], na.rm = TRUE)
   }
+}
+if(standardize) {
+  for.sim <- scale(for.sim)
 }
 
 cols.level <- list(
@@ -507,8 +524,8 @@ for(i in 1:length(na.pats)){
 JJ <- grep("JJ Wetherholt", final.data$name)
 comps[[as.character(final.data[JJ,"bbref_id"])]]
 JJ.comp <- final.data[final.data$bbref_id %in% c(final.data[JJ,"bbref_id"], comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10]),]
-JJ.comp <- final.data[c(JJ, match(comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10], final.data$bbref_id)),]
-JJ.comp
+JJ.comp <- final.data[c(JJ, match(comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:40], final.data$bbref_id)),]
+JJ.comp[,1:10]
 save(comps, file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/comps.Rdata")
 
 
