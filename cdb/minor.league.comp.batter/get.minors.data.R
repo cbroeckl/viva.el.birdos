@@ -674,6 +674,7 @@ save(comps, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.
 JJ <- grep("JJ Wetherholt", final.data$name)
 JW <- grep("Jordan Walker", final.data$name)
 VS <- grep("Victor Scott", final.data$name)
+BT <- grep("Bryan Torres", final.data$name)
 
 library(tidyverse)
 
@@ -683,6 +684,8 @@ JW.comp <- comps[[as.character(final.data$bbref_id[JW])]]$bbref_id
 JW.comp <- final.data[final.data$bbref_id %in% JW.comp,]
 VS.comp <- comps[[as.character(final.data$bbref_id[VS])]]$bbref_id
 VS.comp <- final.data[final.data$bbref_id %in% VS.comp,]
+BT.comp <- comps[[as.character(final.data$bbref_id[BT])]]$bbref_id
+BT.comp <- final.data[final.data$bbref_id %in% BT.comp,]
 
 comp.comp <- rbind(
   data.frame(player = "JJ", JJ.comp, check.names = FALSE), 
@@ -719,7 +722,11 @@ fig <- comp.comp %>%
 
 fig <- comp.comp %>% 
   plot_ly(y = ~wRC_plus, x = ~player, type = "box", boxpoints = "all",
-          text = paste0(~name, ~PA), jitter = 1, pointpos = 0,
-          hoverinfo = 'text')
+          text = ~name,
+          size = ~n.season,
+          jitter = 1, pointpos = 0,
+          # hovertemplate = "%{name}: <br>Popularity: %{wRC_plus} </br> %{PA}"
+          hoverinfo = 'text'
+          )
 fig 
 
