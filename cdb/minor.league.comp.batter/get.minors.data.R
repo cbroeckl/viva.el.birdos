@@ -441,12 +441,36 @@ na.pat <- data.frame(
 na.pat$na.pat.st <- sapply(1:nrow(na.pat), FUN = function(x) paste0(na.pat[x,], collapse = ""))
 na.pats <- unique(na.pat$na.pat.st)
 
+## create dataset for distance metric
+use.pa <- TRUE
+use.ab <- FALSE
+transform.pa.ab <- 'sq.rt' ## 'sq.rt' or 'plus'
+use.age <- TRUE
+
+for.sim <- grep("+", names(final.data), fixed = TRUE)
+if(use.pa) {for.sim <- c(for.sim,   grep("PA.", names(final.data), fixed = TRUE))}
+if(use.ab) {for.sim <- c(for.sim, grep("AB.", names(final.data), fixed = TRUE))}
+if(use.age) {for.sim <- c(for.sim, grep("age.min.", names(final.data), fixed = TRUE))}
+for.sim <- final.data[,for.sim]
+if(use.pa & sq.rt) {
+  do <- grep("PA.", names(for.sim), fixed = TRUE)
+  for(i in 1:length(do)) {
+    for.sim[,do[i]] <- for.sim[,do[i]]^0.5
+  }
+}
+if(use.ab & sq.rt) {
+  do <- grep("AB.", names(for.sim), fixed = TRUE)
+  for(i in 1:length(do)) {
+    for.sim[,do[i]] <- for.sim[,do[i]]^0.5
+  }
+}
+
 cols.level <- list(
-  rookie = which(substring(names(final.data), nchar(names(final.data))-1, nchar(names(final.data))) == "ie"),
-  a <- which(substring(names(final.data), nchar(names(final.data))-1, nchar(names(final.data))) == ".a"),
-  higha <- which(substring(names(final.data), nchar(names(final.data))-1, nchar(names(final.data))) == "ha"),
-  aa <- which(substring(names(final.data), nchar(names(final.data))-2, nchar(names(final.data))) == ".aa"),
-  aaa <- which(substring(names(final.data), nchar(names(final.data))-3, nchar(names(final.data))) == ".aaa")
+  rookie = which(substring(names(for.sim), nchar(names(for.sim))-1, nchar(names(for.sim))) == "ie"),
+  a = which(substring(names(for.sim), nchar(names(for.sim))-1, nchar(names(for.sim))) == ".a"),
+  higha = which(substring(names(for.sim), nchar(names(for.sim))-1, nchar(names(for.sim))) == "ha"),
+  aa = which(substring(names(for.sim), nchar(names(for.sim))-2, nchar(names(for.sim))) == ".aa"),
+  aaa = which(substring(names(for.sim), nchar(names(for.sim))-3, nchar(names(for.sim))) == ".aaa")
 )
 
 comps <- as.list(rep(NA, nrow(final.data)))
@@ -459,7 +483,7 @@ for(i in 1:length(na.pats)){
   row.bbref_id <- final.data$bbref_id[row.use]
   record.comps <- final.data$bbref_id[which(na.pat$na.pat.st == na.pats[i])]
   row.name <- final.data$name[row.use]
-  fin.sub <- final.data[row.use ,cols.selected]
+  fin.sub <- for.sim[row.use ,cols.selected]
   d <- as.matrix(dist(fin.sub))
   d[is.infinite(d)] <- NA
   d.norm <- d/max(d, na.rm = TRUE)
@@ -480,73 +504,78 @@ for(i in 1:length(na.pats)){
   }
 }
 
+JJ <- grep("JJ Wetherholt", final.data$name)
+comps[[as.character(final.data[JJ,"bbref_id"])]]
+JJ.comp <- final.data[final.data$bbref_id %in% c(final.data[JJ,"bbref_id"], comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10]),]
+JJ.comp <- final.data[c(JJ, match(comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10], final.data$bbref_id)),]
+JJ.comp
 save(comps, file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/comps.Rdata")
 
 
-dists <- rep(NA, nrow(final.data))
-for(i in 1:length(dists)) {
-  dists[i] <- euclid(x = final.data[JJ,3:ncol(final.data)], y = final.data[i,3:ncol(final.data)])
-}
+# dists <- rep(NA, nrow(final.data))
+# for(i in 1:length(dists)) {
+#   dists[i] <- euclid(x = final.data[JJ,3:ncol(final.data)], y = final.data[i,3:ncol(final.data)])
+# }
 
-
-## try again.
-metadata <- c("bbref_id", "name")
-metadata <- c(metadata, names(final.data)[grep('PA.', names(final.data))], names(final.data)[grep('AB.', names(final.data))], names(final.data)[grep('season', names(final.data))])
-tmp <- final.data[,!(names(final.data) %in% metadata)]
-tmp <- as.matrix(tmp)
-tmp[which(is.nan((tmp)))] <- NA
-tmp[which(is.na(tmp))] <- 0
-## select only "+" stats
-# plus <- grep("+", names(tmp), fixed = TRUE)
-# tmp <- tmp[,plus]
-
-## calculate full matrix, extract top 100 similar for each player, excluding self
-tar <- grep('JJ Wetherholt', final.data$name )
-d <- dist(tmp, diag = TRUE, upper = FALSE)
-object.size(d)
-d <- as.matrix(d)
-object.size(d)
-range(d, na.rm = TRUE)
-d.norm <- d/max(d, na.rm = TRUE)
-
-use <- order(d.norm[tar,], decreasing = FALSE)[1:11]
-final.data[tar,1:4]
-final.data[use,1:4]
-d.norm[tar,use]
-final.data[use[1:3],]
-tmp[use[1:3],]
-
-dist(tmp[use[1:2],], diag = TRUE, upper = FALSE)
-
-
-
-final.data[tar, 1:4]
-tar.set <- tmp[tar, ]
-use <- which(!is.na(tar.set))
-tar.set <- tar.set[,use]
-tmp <- tmp[,use]
-tmp[(is.na(tmp))] <- 0
-
-euclid <- function(x, y) {
-  sq_diffs <- (y - x)^2
-  sum_sq <- rowSums(sq_diffs)
-  distance <- sqrt(sum_sq)
-  distance
-}
-
-dists <- rep(NA, nrow(final.data))
-for(i in 1:length(dists)) {
-  dists[i] <- euclid(x = tar.set, y = tmp[i,])
-}
-
-use <- order(dists, decreasing = FALSE)[1:11]
-cat(paste(final.data[use,'name'], collapse = '\n'))
-display <- final.data[use,]
-row.names(display) <- display$name
-display <- display[,-which(names(display) == "name")] 
-display <- display[,grep("+", names(display), fixed = TRUE)]
-t(round(display))[,]
-cat(paste(final.data[use,'name'], collapse = '\n'))
+# 
+# ## try again.
+# metadata <- c("bbref_id", "name")
+# metadata <- c(metadata, names(final.data)[grep('PA.', names(final.data))], names(final.data)[grep('AB.', names(final.data))], names(final.data)[grep('season', names(final.data))])
+# tmp <- final.data[,!(names(final.data) %in% metadata)]
+# tmp <- as.matrix(tmp)
+# tmp[which(is.nan((tmp)))] <- NA
+# tmp[which(is.na(tmp))] <- 0
+# ## select only "+" stats
+# # plus <- grep("+", names(tmp), fixed = TRUE)
+# # tmp <- tmp[,plus]
+# 
+# ## calculate full matrix, extract top 100 similar for each player, excluding self
+# tar <- grep('JJ Wetherholt', final.data$name )
+# d <- dist(tmp, diag = TRUE, upper = FALSE)
+# object.size(d)
+# d <- as.matrix(d)
+# object.size(d)
+# range(d, na.rm = TRUE)
+# d.norm <- d/max(d, na.rm = TRUE)
+# 
+# use <- order(d.norm[tar,], decreasing = FALSE)[1:11]
+# final.data[tar,1:4]
+# final.data[use,1:4]
+# d.norm[tar,use]
+# final.data[use[1:3],]
+# tmp[use[1:3],]
+# 
+# dist(tmp[use[1:2],], diag = TRUE, upper = FALSE)
+# 
+# 
+# 
+# final.data[tar, 1:4]
+# tar.set <- tmp[tar, ]
+# use <- which(!is.na(tar.set))
+# tar.set <- tar.set[,use]
+# tmp <- tmp[,use]
+# tmp[(is.na(tmp))] <- 0
+# 
+# euclid <- function(x, y) {
+#   sq_diffs <- (y - x)^2
+#   sum_sq <- rowSums(sq_diffs)
+#   distance <- sqrt(sum_sq)
+#   distance
+# }
+# 
+# dists <- rep(NA, nrow(final.data))
+# for(i in 1:length(dists)) {
+#   dists[i] <- euclid(x = tar.set, y = tmp[i,])
+# }
+# 
+# use <- order(dists, decreasing = FALSE)[1:11]
+# cat(paste(final.data[use,'name'], collapse = '\n'))
+# display <- final.data[use,]
+# row.names(display) <- display$name
+# display <- display[,-which(names(display) == "name")] 
+# display <- display[,grep("+", names(display), fixed = TRUE)]
+# t(round(display))[,]
+# cat(paste(final.data[use,'name'], collapse = '\n'))
 
 
 ## get MLB level data for same time frame
