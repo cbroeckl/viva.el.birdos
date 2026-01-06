@@ -539,7 +539,7 @@ comps[[as.character(final.data[JC,"bbref_id"])]][1:10,]
 table(comps[[as.character(final.data[JW,"bbref_id"])]][,"bbref_id"] %in% comps[[as.character(final.data[JJ,"bbref_id"])]][,"bbref_id"])
 
 save(comps, file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/comps.Rdata")
-
+# save(comps, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/comps.Rdata")
 
 # dists <- rep(NA, nrow(final.data))
 # for(i in 1:length(dists)) {
@@ -667,3 +667,59 @@ mlb.6yr$Offense.600PA <- 600*mlb.6yr$Offense/mlb.6yr$PA
 
 final.data <- merge(final.data, mlb.6yr, by = 'bbref_id', all.x = TRUE, all.y = FALSE)
 head(final.data)
+save(comps, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/mlb.Rdata")
+save(comps, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
+
+
+JJ <- grep("JJ Wetherholt", final.data$name)
+JW <- grep("Jordan Walker", final.data$name)
+VS <- grep("Victor Scott", final.data$name)
+
+library(tidyverse)
+
+JJ.comp <- comps[[as.character(final.data$bbref_id[JJ])]]$bbref_id
+JJ.comp <- final.data[final.data$bbref_id %in% JJ.comp,]
+JW.comp <- comps[[as.character(final.data$bbref_id[JW])]]$bbref_id
+JW.comp <- final.data[final.data$bbref_id %in% JW.comp,]
+VS.comp <- comps[[as.character(final.data$bbref_id[VS])]]$bbref_id
+VS.comp <- final.data[final.data$bbref_id %in% VS.comp,]
+
+comp.comp <- rbind(
+  data.frame(player = "JJ", JJ.comp, check.names = FALSE), 
+  data.frame(player = "JW", JW.comp, check.names = FALSE), 
+  data.frame(player = "VS", VS.comp, check.names = FALSE)
+)
+
+comp.comp %>%
+  ggplot(aes(x = player, y=Offense.600PA, fill = player))+
+  geom_violin()+
+  geom_jitter()+
+  theme(legend.position = "none")
+
+library(plotly)
+
+df <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/violin_data.csv")
+
+library(plotly)
+fig <- comp.comp %>%
+  plot_ly(
+    y = ~wRC_plus,
+    x = ~player,
+    type = 'violin',
+    box = list(
+      visible = T
+    ),
+    scatter = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    )
+  ) 
+
+fig <- comp.comp %>% 
+  plot_ly(y = ~wRC_plus, x = ~player, type = "box", boxpoints = "all",
+          text = paste0(~name, ~PA), jitter = 1, pointpos = 0,
+          hoverinfo = 'text')
+fig 
+
