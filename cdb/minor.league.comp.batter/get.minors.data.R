@@ -71,9 +71,9 @@ for(yr in yrs) {
     # }
     d <- tryCatch({
       bref_daily_batter_milb(t1 = dt[1], t2 = dt[2], level = lev)
-      }, error = function(msg){
-        return(NA)
-      }
+    }, error = function(msg){
+      return(NA)
+    }
     )
     
     # if(!is.data.frame(d)) {
@@ -312,6 +312,7 @@ hist(milb.batting.3$'K%+')
 save(milb.batting.3, file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/milb.batting.3.Rdata")
 
 # load("C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/milb.batting.3.Rdata")
+# load("C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/milb.batting.3.Rdata")
 # will now need to reshape
 ## example code: 
 library(dplyr)
@@ -364,8 +365,8 @@ final.data <- data.frame(
   milb.batting.4[,aaa], 
   check.names = FALSE
 )
-save(final.data, 
-     file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
+save(final.data,  file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
+# save(final.data,  file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
 # load("C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
 # load("C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
 
@@ -374,6 +375,9 @@ save(final.data,
 JJ <- grep("JJ Wetherholt", final.data$name)
 final.data[JJ,]
 
+RR <- grep("Rainiel", final.data$name)
+final.data[RR,]
+
 # d <- dist(final.data[(JJ-1):(JJ+1),], method = 'manhattan', diag = TRUE)
 # d
 # 
@@ -381,10 +385,10 @@ final.data[JJ,]
 # # For M where rows are vectors:
 # 
 # # test data
-v <- matrix(c(100, NA, 120, 200, 200, NA, 220, NA, 400, NA), nrow = 2, ncol = 5, byrow = TRUE)
-v
-d.test <- dist(v, diag = TRUE, upper = TRUE)
-d.test
+# v <- matrix(c(100, NA, 120, 200, 200, NA, 220, NA, 400, NA), nrow = 2, ncol = 5, byrow = TRUE)
+# v
+# d.test <- dist(v, diag = TRUE, upper = TRUE)
+# d.test
 
 ## the above demonstrates that any pairwise non-NA will return a euclidian distance,
 ## when there are only NA values pairwise, NA is returned 
@@ -416,6 +420,7 @@ euclid <- function(x, y) {
   sq_diffs <- (y[use] - x[use])^2
   sum_sq <- rowSums(sq_diffs)
   distance <- sqrt(sum_sq)
+  distance <- distance/length(use)
   distance
 }
 
@@ -441,6 +446,8 @@ transform.pa.ab <- 'plus' ## 'sq.rt' or 'plus'
 use.age <- TRUE
 transform.age <- TRUE
 standardize <- TRUE
+age.weight <- 0.33
+
 
 for.sim <- grep("+", names(final.data), fixed = TRUE)
 if(use.pa) {for.sim <- c(for.sim,   grep("PA.", names(final.data), fixed = TRUE))}
@@ -476,6 +483,13 @@ if(standardize) {
   for.sim <- data.frame(scale(for.sim), check.names = FALSE)
 }
 
+if(use.age & transform.age) {
+  do <- grep("age.min.", names(for.sim), fixed = TRUE)
+  for(i in 1:length(do)) {
+    for.sim[,do[i]] <- age.weight*for.sim[,do[i]]
+  }
+}
+
 cols.level <- list(
   rookie = which(substring(names(for.sim), nchar(names(for.sim))-1, nchar(names(for.sim))) == "ie"),
   a = which(substring(names(for.sim), nchar(names(for.sim))-1, nchar(names(for.sim))) == ".a"),
@@ -483,6 +497,8 @@ cols.level <- list(
   aa = which(substring(names(for.sim), nchar(names(for.sim))-2, nchar(names(for.sim))) == ".aa"),
   aaa = which(substring(names(for.sim), nchar(names(for.sim))-3, nchar(names(for.sim))) == ".aaa")
 )
+
+
 
 comps <- as.list(rep(NA, nrow(final.data)))
 names(comps) <- final.data$bbref_id
@@ -511,32 +527,38 @@ for(i in 1:length(na.pats)){
         'similarity' = round(1 - d.norm[j, comp.v],3)
       )
     }
-
+    
   }
 }
 
-JJ <- grep("JJ Wetherholt", final.data$name)
-comps[[as.character(final.data[JJ,"bbref_id"])]][1:10,]
-JJ.comp <- final.data[final.data$bbref_id %in% c(final.data[JJ,"bbref_id"], comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10]),]
-JJ.comp <- final.data[c(JJ, match(comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id, final.data$bbref_id)),]
-JJ.comp$name
-
-JW <- grep("Jordan Walker", final.data$name)
-comps[[as.character(final.data[JW,"bbref_id"])]][1:10,]
-JJ.comp <- final.data[final.data$bbref_id %in% c(final.data[JJ,"bbref_id"], comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10]),]
-JJ.comp <- final.data[c(JJ, match(comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id, final.data$bbref_id)),]
-JJ.comp$name
-
-JJ <- grep("JJ Wetherholt", final.data$name)
-comps[[as.character(final.data[JJ,"bbref_id"])]][1:10,]
-JW <- grep("Jordan Walker", final.data$name)
-comps[[as.character(final.data[JW,"bbref_id"])]][1:10,]
-VS <- grep("Victor Scott", final.data$name)
-comps[[as.character(final.data[VS,"bbref_id"])]][1:10,]
-JC <- grep("Juan Ciriaco", final.data$name)[1]
-comps[[as.character(final.data[JC,"bbref_id"])]][1:10,]
-
-table(comps[[as.character(final.data[JW,"bbref_id"])]][,"bbref_id"] %in% comps[[as.character(final.data[JJ,"bbref_id"])]][,"bbref_id"])
+# RR <- grep("Rainiel", final.data$name)
+# comps[[as.character(final.data[RR,"bbref_id"])]][1:20,]
+# 
+# 
+# JJ.comp <- final.data[final.data$bbref_id %in% c(final.data[JJ,"bbref_id"], comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10]),]
+# JJ.comp <- final.data[c(JJ, match(comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id, final.data$bbref_id)),]
+# JJ.comp$name
+# 
+# JW <- grep("Jordan Walker", final.data$name)
+# comps[[as.character(final.data[JW,"bbref_id"])]][1:10,]
+# JJ.comp <- final.data[final.data$bbref_id %in% c(final.data[JJ,"bbref_id"], comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id[1:10]),]
+# JJ.comp <- final.data[c(JJ, match(comps[[as.character(final.data[JJ,"bbref_id"])]]$bbref_id, final.data$bbref_id)),]
+# JJ.comp$name
+# 
+# JJ <- grep("JJ Wetherholt", final.data$name)
+# comps[[as.character(final.data[JJ,"bbref_id"])]][1:10,]
+# JW <- grep("Jordan Walker", final.data$name)
+# comps[[as.character(final.data[JW,"bbref_id"])]][1:10,]
+# VS <- grep("Victor Scott", final.data$name)
+# comps[[as.character(final.data[VS,"bbref_id"])]][1:10,]
+# RR <- grep("Rainiel", final.data$name)[1]
+# comps[[as.character(final.data[JC,"bbref_id"])]][1:10,]
+# 
+# 
+# comps[[as.character(802139)]][1:10,]
+# 
+# 
+# table(comps[[as.character(final.data[JW,"bbref_id"])]][,"bbref_id"] %in% comps[[as.character(final.data[JJ,"bbref_id"])]][,"bbref_id"])
 
 save(comps, file = "C:/Users/cbroe/OneDrive/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/comps.Rdata")
 # save(comps, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/comps.Rdata")
@@ -614,26 +636,26 @@ yrs <- c(2008:2025)
 # levs <- c("aaa", "a")
 mlb.list <- as.list(vector(length = 0))
 for(yr in yrs) {
-    
-    Sys.sleep(2)
-    closeAllConnections()
-    dt <- paste0(yr, c("-01-01", "-12-31"))
-    # if(yr >= 2019 & lev == 'rk') {
-    #   lev == "rookie"
-    # }
-    d <- tryCatch({
-      baseballr::fg_batter_leaders(startseason = as.character(yr), endseason = as.character(yr))
-    }, error = function(msg){
-      return(NA)
-    }
-    )
   
-    
-    if(is.data.frame(d)) {
-      d <- d[,c("Season", "PlayerName", "xMLBAMID", "Offense", "wRC_plus", "PA")]
-      mlb.list[[length(mlb.list)+1]] <- d
-    }
-    rm(d)
+  Sys.sleep(2)
+  closeAllConnections()
+  dt <- paste0(yr, c("-01-01", "-12-31"))
+  # if(yr >= 2019 & lev == 'rk') {
+  #   lev == "rookie"
+  # }
+  d <- tryCatch({
+    baseballr::fg_batter_leaders(startseason = as.character(yr), endseason = as.character(yr))
+  }, error = function(msg){
+    return(NA)
+  }
+  )
+  
+  
+  if(is.data.frame(d)) {
+    d <- d[,c("Season", "PlayerName", "xMLBAMID", "Offense", "wRC_plus", "PA")]
+    mlb.list[[length(mlb.list)+1]] <- d
+  }
+  rm(d)
 }
 
 mlb <- dplyr::bind_rows(mlb.list)
@@ -644,7 +666,8 @@ mlb.6yr <- data.frame(
   Offense = vector(length = 0, mode = 'numeric'),
   wRC_plus = vector(length = 0, mode = 'numeric'),
   PA = vector(length = 0, mode = 'integer'),
-  n.season = vector(length = 0, mode = 'integer')
+  n.season = vector(length = 0, mode = 'integer'),
+  most.recent.mlb.season = vector(length = 0, mode = 'integer')
 )
 for(i in 1:length(all.mlb.ids)) {
   use <- which(mlb$xMLBAMID == all.mlb.ids[i])
@@ -657,15 +680,27 @@ for(i in 1:length(all.mlb.ids)) {
     Offense = sum(mlb$Offense[use], na.rm = TRUE),
     wRC_plus = weighted.mean(mlb$wRC_plus[use], weights = mlb$PA[use], na.rm = TRUE),
     PA = sum(mlb$PA[use]),
-    n.season = n.years
+    n.season = n.years,
+    most.recent.mlb.season = max(mlb$Season[use], na.rm = TRUE)
   )
   mlb.6yr <- rbind(mlb.6yr, tmp)
 }
 head(mlb.6yr)
 mlb.6yr$Offense.600PA <- 600*mlb.6yr$Offense/mlb.6yr$PA
 
+# final.data <- final.data[,-c(which(names(final.data) == 'Offense'): ncol(final.data))]
 
 final.data <- merge(final.data, mlb.6yr, by = 'bbref_id', all.x = TRUE, all.y = FALSE)
+head(final.data)
+
+most.recent.milb.season <- sapply(1:nrow(final.data), FUN = function(x) {
+  max(final.data[x, grep('season.max.', names(final.data))], na.rm = TRUE)
+}
+)
+final.data$most.recent.milb.season <- most.recent.milb.season
+final.data$most.recent.season <- pmax(final.data$most.recent.milb.season, final.data$most.recent.mlb.season, na.rm = TRUE)
+current.year <- max(final.data$most.recent.mlb.season, na.rm = TRUE)
+final.data$out.of.baseball <- sapply(final.data$most.recent.season, FUN = function(x) {(current.year - x) >=2})
 head(final.data)
 save(comps, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/mlb.Rdata")
 save(comps, file = "C:/Users/cbroeckl/Documents/GitHub/viva.el.birdos/cdb/minor.league.comp.batter/final.data.Rdata")
@@ -675,6 +710,7 @@ JJ <- grep("JJ Wetherholt", final.data$name)
 JW <- grep("Jordan Walker", final.data$name)
 VS <- grep("Victor Scott", final.data$name)
 BT <- grep("Bryan Torres", final.data$name)
+# RR <- grep("Rodriguez", final.data$name)
 
 library(tidyverse)
 
@@ -686,22 +722,48 @@ VS.comp <- comps[[as.character(final.data$bbref_id[VS])]]$bbref_id
 VS.comp <- final.data[final.data$bbref_id %in% VS.comp,]
 BT.comp <- comps[[as.character(final.data$bbref_id[BT])]]$bbref_id
 BT.comp <- final.data[final.data$bbref_id %in% BT.comp,]
+RR.comp <- comps[[as.character(823787)]]$bbref_id
+RR.comp <- final.data[final.data$bbref_id %in% RR.comp,]
+
 
 comp.comp <- rbind(
   data.frame(player = "JJ", JJ.comp, check.names = FALSE), 
   data.frame(player = "JW", JW.comp, check.names = FALSE), 
-  data.frame(player = "VS", VS.comp, check.names = FALSE)
+  data.frame(player = "VS", VS.comp, check.names = FALSE),
+  data.frame(player = "RR", RR.comp, check.names = FALSE)
 )
 
-comp.comp %>%
-  ggplot(aes(x = player, y=Offense.600PA, fill = player))+
+library(plotly)
+give.n <- function(x) {
+  return(c(y = max(x), label = paste0("n = ", length(x))))
+}
+
+players <- unique(comp.comp$player)
+failure.rate <- sapply(players, FUN = function(x) {
+  tmp <- comp.comp[which(comp.comp$player == x),]
+  round(100*length(which(is.na(tmp$wRC_plus)))/nrow(tmp))
+})
+failure.rate <- data.frame(
+  player = names(failure.rate),
+  failure.rate
+)
+
+
+gg <- comp.comp %>%
+  ggplot(aes(x = player, y=wRC_plus, fill = player))+
   geom_violin()+
   geom_jitter()+
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  geom_text(data = failure.rate,
+            aes(label = paste0(failure.rate, "%"),
+                y = 1.05*max(comp.comp$wRC_plus, na.rm = TRUE),
+                hjust = 0.5, vjust = 0, size = 5)
+  )
+gg
+gg <- ggplotly(gg)
+str(gg)
 
-library(plotly)
-
-df <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/violin_data.csv")
+# df <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/violin_data.csv")
 
 library(plotly)
 fig <- comp.comp %>%
@@ -720,6 +782,12 @@ fig <- comp.comp %>%
     )
   ) 
 
+
+failure.rate <- sapply(players, FUN = function(x) {
+  tmp <- comp.comp[which(comp.comp$player == x),]
+  round(100*length(which(is.na(tmp$wRC_plus)))/nrow(tmp))
+})
+
 fig <- comp.comp %>% 
   plot_ly(y = ~wRC_plus, x = ~player, type = "box", boxpoints = "all",
           text = ~name,
@@ -727,6 +795,22 @@ fig <- comp.comp %>%
           jitter = 1, pointpos = 0,
           # hovertemplate = "%{name}: <br>Popularity: %{wRC_plus} </br> %{PA}"
           hoverinfo = 'text'
-          )
+  )
+for (i in 1:length(failure.rate)) {
+  fig <- fig %>% add_annotations(
+    x = names(failure.rate)[i],         # X position based on Species name
+    y = 1.05*max(comp.comp$wRC_plus, na.rm = TRUE),    # Y position (adjust as needed for placement)
+    text = paste0(failure.rate[i], "%"), # The annotation text
+    xref = "x",                   # Reference the x-axis
+    yref = "y",                   # Reference the y-axis
+    showarrow = FALSE,            # Do not show an arrow pointing to the value
+    yshift = 0                   # Slightly shift up from the max value
+  )
+}
+
 fig 
 
+
+table(d$organizationReferenceId)
+d.sub <- d[which(d$organizationReferenceId == "ARBIICIT"),]
+aggregate(d.sub$Quantity, by = list(d.sub$Price.Type), FUN = 'sum')
